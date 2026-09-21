@@ -1,0 +1,12 @@
+{
+  "name": "sistema-demandas",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node --test app.test.cjs contracts.test.cjs access.test.cjs cost-report.test.cjs",
+    "migrate:firebase": "node scripts/migrate-to-firestore.cjs"
+  },
+  "dependencies": { "firebase-admin": "^13.0.0" }
+}
