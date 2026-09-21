@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Minhas Demandas</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="auth.css">
+    <script src="auth.js" defer></script>
+</head>
+
+<body class="auth-protected">
+
+    <!-- ==============================
+         SIDEBAR
+    =============================== -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">✓</div>
+
+            <div>
+                <h1>Minhas</h1>
+                <span>Demandas</span>
+            </div>
+        </div>
+
+        <nav class="menu">
+
+            <button class="menu-item active" data-section="dashboard">
+                <span>📊</span>
+                Dashboard
+            </button>
+
+            <button class="menu-item" data-section="demandas">
+                <span>📋</span>
+                Demandas
+            </button>
+
+            <button class="menu-item" data-section="calendario">
+                <span>📅</span>
+                Calendário
+            </button>
+
+            <button class="menu-item" data-section="historico">
+                <span>🗂️</span>
+                Histórico
+            </button>
+
+            <a class="menu-item" href="contratos.html" style="text-decoration:none"><span>📄</span> Instrutores e contratos</a>
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <button class="menu-item" data-section="configuracoes">
+                <span>⚙️</span>
+                Configurações
+            </button>
+
+            <div class="user-card">
+                <div class="avatar">E</div>
+
+                <div>
+                    <strong>Emily Francelino</strong>
+                    <small>Minhas tarefas</small>
+                </div>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ==============================
+         CONTEÚDO PRINCIPAL
+    =============================== -->
+
+    <main class="main">
+
+        <!-- HEADER -->
+
+        <header class="topbar">
+
+            <div>
+                <span class="page-date" id="currentDate"></span>
+
+                <h2 id="pageTitle">
+                    Dashboard
+                </h2>
+            </div>
+
+            <button class="btn-primary" id="btnNovaDemanda">
+                <span>+</span>
+                Nova demanda
+            </button>
+
+        </header>
+
+
+        <!-- ==============================
+             DASHBOARD
+        =============================== -->
+
+        <section id="dashboard" class="section active">
+
+            <div class="welcome">
+
+                <div>
+                    <span class="eyebrow">VISÃO GERAL</span>
+
+                    <h2>
+                        Olá, Emily! 👋
+                    </h2>
+
+                    <p>
+                        Aqui está o que você precisa fazer hoje.
+                    </p>
+                </div>
+
+                <div class="today-date" id="todayDate"></div>
+
+            </div>
+
+
+            <!-- CARDS -->
+
+            <div class="stats">
+
+                <div class="stat-card">
+                    <div class="stat-icon blue">📋</div>
+
+                    <div>
+                        <span>Para hoje</span>
+                        <strong id="statToday">0</strong>
+                    </div>
+                </div>
+
+
+                <div class="stat-card">
+                    <div class="stat-icon red">⚠️</div>
+
+                    <div>
+                        <span>Atrasadas</span>
+                        <strong id="statOverdue">0</strong>
+                    </div>
+                </div>
+
+
+                <div class="stat-card">
+                    <div class="stat-icon orange">⏳</div>
+
+                    <div>
+                        <span>Pendentes</span>
+                        <strong id="statPending">0</strong>
+                    </div>
+                </div>
+
+
+                <div class="stat-card">
+                    <div class="stat-icon green">✓</div>
+
+                    <div>
+                        <span>Concluídas</span>
+                        <strong id="statCompleted">0</strong>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- DEMANDAS DE HOJE -->
+
+            <div class="section-header">
+
+                <div>
+                    <h3>Demandas de hoje</h3>
+                    <p>Priorize o que precisa ser feito.</p>
+                </div>
+
+                <button class="text-button" id="verTodas">
+                    Ver todas →
+                </button>
+
+            </div>
+
+            <div id="todayTasks" class="task-list"></div>
+
+
+            <!-- ATALHOS -->
+
+            <div class="quick-actions">
+
+                <button id="quickAdd">
+                    <span>＋</span>
+                    <div>
+                        <strong>Nova demanda</strong>
+                        <small>Adicionar uma nova tarefa</small>
+                    </div>
+                </button>
+
+                <button id="quickCalendar">
+                    <span>📅</span>
+                    <div>
+                        <strong>Calendário</strong>
+                        <small>Visualizar meus compromissos</small>
+                    </div>
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- ==============================
+             DEMANDAS
+        =============================== -->
+
+        <section id="demandas" class="section">
+
+            <div class="section-header">
+
+                <div>
+                    <h3>Todas as demandas</h3>
+                    <p>Gerencie suas tarefas.</p>
+                </div>
+
+            </div>
+
+
+            <div class="filters">
+
+                <div class="search-box">
+                    🔎
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Pesquisar demanda..."
+                    >
+                </div>
+
+
+                <label>Mês das demandas<input type="month" id="filterMonth" aria-label="Filtrar demandas por mês"></label><button class="text-button" id="clearFilterMonth">Todos os meses</button>
+                <select id="filterStatus" aria-label="Filtrar por status">
+                    <option value="all">Todos os status</option>
+                    <option value="pending">Pendentes</option>
+                    <option value="completed">Concluídas</option>
+                    <option value="overdue">Atrasadas</option>
+                </select>
+
+
+                <select id="filterPriority" aria-label="Filtrar por prioridade">
+                    <option value="all">Todas prioridades</option>
+                    <option value="high">Alta</option>
+                    <option value="medium">Média</option>
+                    <option value="low">Baixa</option>
+                </select>
+
+            </div>
+
+
+            <div id="allTasks" class="task-list"></div>
+
+        </section>
+
+
+        <!-- ==============================
+             CALENDÁRIO
+        =============================== -->
+
+        <section id="calendario" class="section">
+
+            <div class="section-header">
+
+                <div>
+                    <h3>Calendário</h3>
+                    <p>Visualize suas demandas por data.</p>
+                </div>
+
+            </div>
+
+            <div class="calendar-controls">
+
+                <button id="prevMonth" aria-label="Mês anterior">‹</button>
+
+                <h3 id="calendarMonth"></h3>
+
+                <button id="nextMonth" aria-label="Próximo mês">›</button>
+
+            </div>
+
+            <div id="calendar" class="calendar"></div>
+
+        </section>
+
+
+        <!-- ==============================
+             HISTÓRICO
+        =============================== -->
+
+        <section id="historico" class="section">
+
+            <div class="section-header">
+
+                <div>
+                    <h3>Histórico</h3>
+                    <p>Demandas que você já concluiu.</p>
+                </div>
+
+            </div>
+
+            <div id="historyTasks" class="task-list"></div>
+
+        </section>
+
+
+        <!-- ==============================
+             CONFIGURAÇÕES
+        =============================== -->
+
+        <section id="configuracoes" class="section">
+
+            <div class="section-header">
+
+                <div>
+                    <h3>Configurações</h3>
+                    <p>Configure o comportamento do sistema.</p>
+                </div>
+
+            </div>
+
+
+            <div class="settings-card">
+
+                <div class="setting">
+
+                    <div>
+                        <strong>Notificações</strong>
+
+                        <p>
+                            Permitir lembretes das suas demandas.
+                        </p>
+                    </div>
+
+                    <label class="switch">
+
+                        <input
+                            type="checkbox"
+                            id="notificationToggle" aria-label="Permitir notificações"
+                        >
+
+                        <span></span>
+
+                    </label>
+
+                </div>
+
+
+                <div class="setting">
+
+                    <div>
+                        <strong>Salvar automaticamente</strong>
+
+                        <p>
+                            As demandas são salvas no banco local, com acesso exclusivo da gestora.
+                        </p>
+                    </div>
+
+                    <span class="status-enabled">
+                        Ativo
+                    </span>
+
+                </div>
+
+
+                <div class="setting danger-setting">
+
+                    <div>
+                        <strong>Limpar dados</strong>
+
+                        <p>
+                            Apaga todas as demandas da gestora armazenadas no banco local.
+                        </p>
+                    </div>
+
+                    <button
+                        class="btn-danger"
+                        id="clearData"
+                    >
+                        Limpar dados
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- ==============================
+         MODAL NOVA DEMANDA
+    =============================== -->
+
+    <div id="taskModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <div>
+                    <span class="eyebrow" id="modalEyebrow">NOVA DEMANDA</span>
+
+                    <h2 id="modalTitle">
+                        Adicionar demanda
+                    </h2>
+                </div>
+
+                <button
+                    class="close-modal"
+                    id="closeModal" aria-label="Fechar formulário"
+                >
+                    ×
+                </button>
+
+            </div>
+
+
+            <form id="taskForm">
+
+                <input
+                    type="hidden"
+                    id="taskId"
+                >
+
+
+                <div class="form-group">
+
+                    <label for="taskTitle">
+                        Título *
+                    </label>
+
+                    <input
+                        type="text"
+                        id="taskTitle"
+                        placeholder="Ex.: Preparar relatório mensal"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="taskDescription">
+                        Descrição
+                    </label>
+
+                    <textarea
+                        id="taskDescription"
+                        placeholder="Descreva os detalhes da demanda..."
+                    ></textarea>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="taskDate">
+                            Data *
+                        </label>
+
+                        <input
+                            type="date"
+                            id="taskDate"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="taskTime">
+                            Horário
+                        </label>
+
+                        <input
+                            type="time"
+                            id="taskTime"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-row">
+
+                    <div class="form-group">
+
+                        <label for="taskPriority">
+                            Prioridade
+                        </label>
+
+                        <select id="taskPriority">
+
+                            <option value="high">
+                                🔴 Alta
+                            </option>
+
+                            <option
+                                value="medium"
+                                selected
+                            >
+                                🟠 Média
+                            </option>
+
+                            <option value="low">
+                                🟢 Baixa
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="taskCategory">
+                            Categoria
+                        </label>
+
+                        <select id="taskCategory">
+
+                            <option value="Trabalho">
+                                Trabalho
+                            </option>
+
+                            <option value="Administrativo">
+                                Administrativo
+                            </option>
+
+                            <option value="Reunião">
+                                Reunião
+                            </option>
+
+                            <option value="Relatório">
+                                Relatório
+                            </option>
+
+                            <option value="Outro">
+                                Outro
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="taskRecurrence">
+                        Recorrência
+                    </label>
+
+                    <p id="recurrenceHelp">Gera as próximas 30 ocorrências. Alterar a frequência substitui as repetições pendentes desta demanda; as concluídas são preservadas. Os demais campos alteram apenas esta ocorrência.</p>
+                    <select id="taskRecurrence" aria-describedby="recurrenceHelp">
+
+                        <option value="none">
+                            Não repetir
+                        </option>
+
+                        <option value="daily">
+                            Todos os dias
+                        </option>
+
+                        <option value="weekly">
+                            Toda semana
+                        </option>
+
+                        <option value="monthly">
+                            Todo mês
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="modal-actions">
+
+                    <button
+                        type="button"
+                        class="btn-secondary"
+                        id="cancelModal"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn-primary"
+                    >
+                        Salvar demanda
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <dialog id="confirmDialog" class="confirm-dialog" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+        <h2 id="confirmTitle">Confirmar exclusão</h2>
+        <p id="confirmMessage"></p>
+        <form method="dialog" class="modal-actions">
+            <button id="cancelConfirm" class="btn-secondary" value="cancel" autofocus>Cancelar</button>
+            <button class="btn-danger" value="confirm">Excluir</button>
+        </form>
+    </dialog>
+
+    <!-- TOAST -->
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+
+    <script src="app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,74 @@
+.contracts-app [hidden] { display: none !important; }
+.contracts-app .menu-item { text-decoration: none; }
+.contracts-app .menu { overflow-y: auto; }
+.contracts-app .topbar { gap: 20px; flex-wrap: wrap; }
+.toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.storage-note { font-size: 12px; line-height: 1.6; color: var(--text-light); }
+.contracts-app .section-header { gap: 18px; flex-wrap: wrap; }
+.contracts-app .section-header p { max-width: 680px; line-height: 1.6; }
+.contracts-app input:not([type=checkbox]), .contracts-app select, .contracts-app textarea { width: 100%; padding: 11px 12px; font: inherit; color: var(--text); border: 1px solid var(--border); border-radius: 8px; background: white; min-width: 0; }
+.contracts-app label { display: grid; gap: 7px; font-size: 13px; font-weight: 600; }
+.contracts-app .inline-check { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.contracts-app .filters { align-items: center; }
+.record-list { display: grid; gap: 14px; }
+.department-filter { max-width:460px; margin-bottom:24px; }
+.requester-form { margin-top: 24px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; }
+.requester-form p { grid-column: 1 / -1; margin: 0; }
+.module-card, .record-card { padding: 22px; background: white; border: 1px solid var(--border); border-radius: 12px; }
+.record-card { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.record-card h4 { font-size: 16px; margin-bottom: 8px; overflow-wrap: anywhere; }
+.record-card p { font-size: 13px; color: var(--text-light); line-height: 1.6; overflow-wrap: anywhere; }
+.record-card .record-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.record-card .record-total { color: var(--text); font-size: 18px; font-weight: 700; white-space: nowrap; }
+.record-status { display: inline-block; margin-top: 8px; padding: 4px 8px; background: #eff6ff; color: #1d4ed8; border-radius: 5px; font-size: 11px; }
+.record-status.inactive { background: #f2f4f7; color: #667085; }
+.model-note { border-left: 3px solid #d6a850; background: #fffbeb; padding: 18px 20px; border-radius: 8px; margin-bottom: 22px; font-size: 13px; line-height: 1.6; }
+.model-note p { margin-top: 5px; }
+.module-dialog { width: min(680px, calc(100% - 24px)); max-height: calc(100dvh - 32px); margin: auto; padding: 28px; border: 0; border-radius: 14px; color: var(--text); box-shadow: var(--shadow); }
+.module-dialog::backdrop { background: rgba(15, 23, 42, .48); }
+.module-dialog .section-header { margin-bottom: 22px; }
+.module-dialog h2 { font-size: 22px; }
+.module-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.full-row { grid-column: 1 / -1; }
+.help { color: var(--text-light); font-size: 12px; line-height: 1.6; margin-top: 14px; }
+.form-error, .module-error { color: #b42318; font-size: 13px; margin-top: 12px; }
+.module-error { background: #fff1f0; padding: 16px; margin-bottom: 20px; }
+.instructor-preview { font-size: 12px; padding: 14px; line-height: 1.6; white-space: pre-line; background: #f8fafc; border-radius: 8px; overflow-wrap: anywhere; }
+.instructor-preview:empty { display: none; }
+.document-checklist { border: 1px solid var(--border); border-radius: 8px; padding: 14px; display: grid; gap: 10px; }
+.document-checklist legend { padding: 0 5px; font-size: 13px; }
+.calculated-total { padding: 14px; background: #eff6ff; border-radius: 8px; font-size: 12px; }
+.calculated-total strong { display: block; font-size: 23px; margin-top: 5px; }
+.pdf-dialog { width: min(980px, calc(100% - 24px)); }
+.pdf-preview { max-height: 65vh; overflow: auto; border: 1px solid var(--border); background: #eef1f5; }
+.pdf-preview canvas { display: block; width: 100%; height: auto; background: white; }
+.report-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; gap: 18px; }
+.report-heading { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin: 28px 0 22px; }
+.report-heading h2 { font-size: 34px; margin: 8px 0; }
+.report-heading p { font-size: 13px; color: var(--text-light); }
+.course-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.course-summary strong { display: block; margin-top: 7px; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: white; }
+.contracts-app table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+.contracts-app th, .contracts-app td { padding: 16px; border-bottom: 1px solid var(--border); }
+.contracts-app th { color: var(--text-light); font-weight: 600; background: #f8fafc; }
+.contracts-app td:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.contracts-app :focus-visible { outline: 3px solid #93c5fd; outline-offset: 3px; }
+@media(max-width: 1000px) { .report-filters { grid-template-columns: 1fr 1fr; } }
+@media(max-width: 750px) {
+    .storage-note { display: none; }
+    .record-card { flex-direction: column; }
+    .contracts-app .filters { align-items: stretch; }
+    .report-filters, .module-fields, .requester-form { grid-template-columns: 1fr; }
+    .module-dialog { padding: 20px; }
+    .contracts-app .main { padding: 24px 14px; }
+    .toolbar { gap: 8px; }
+    .toolbar button { font-size: 12px; }
+}
+#reportsPanel table { min-width: 1180px; }
+#reportsPanel th { background: #6aa84f; color: #142b12; }
+#reportsPanel td:nth-child(3) { min-width: 220px; }
+#reportsPanel td:nth-child(4), #reportsPanel td:nth-child(5), #reportsPanel td:nth-child(6) { white-space: nowrap; }
+.record-status.pending { background: #fff3cd; color: #805b00; }
+.filters label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; }

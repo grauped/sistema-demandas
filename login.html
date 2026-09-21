@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Acesso · Minhas Demandas</title><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="auth.css"><script src="auth.js" defer></script><script src="login.js" defer></script></head>
+<body class="login-page"><main class="login-card"><div class="logo"><div class="logo-icon">✓</div><div><h1>Minhas Demandas</h1><span>Gestão integrada da instituição</span></div></div>
+<h2 id="loginTitle">Entrar no sistema</h2><p id="loginIntro">Acesso restrito aos três e-mails autorizados. Seu perfil é identificado automaticamente.</p>
+<p id="loginError" class="form-error" role="alert"></p>
+<form id="loginForm" hidden><label>E-mail<input id="email" type="email" autocomplete="username" required></label><label>Senha<input id="password" type="password" autocomplete="current-password" required maxlength="128"></label><button class="btn-primary" type="submit">Entrar</button></form>
+<form id="setupForm" hidden>
+<p>Os três usuários já estão cadastrados. Defina uma senha para cada acesso; não é possível adicionar outros e-mails.</p>
+<label>Gestora<span class="account-email" id="gestoraEmail"></span><input id="gestoraPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required placeholder="Pelo menos 10 caracteres"></label>
+<label>Confirmar senha da gestora<input id="gestoraConfirm" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+<label>Coordenação de Exatas<span class="account-email" id="exatasEmail"></span><input id="exatasPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+<label>Confirmar senha de Exatas<input id="exatasConfirm" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+<label>Coordenação de Saúde<span class="account-email" id="saudeEmail"></span><input id="saudePassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+<label>Confirmar senha de Saúde<input id="saudeConfirm" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+<button class="btn-primary" type="submit">Definir senhas dos três acessos</button></form>
+<form id="passwordForm" hidden><label>Senha atual<input id="currentPassword" type="password" autocomplete="current-password" maxlength="128" required></label><label>Nova senha<input id="newPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label><label>Confirmar nova senha<input id="confirmPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label><button class="btn-primary" type="submit">Salvar nova senha</button><a href="contratos.html">Voltar ao sistema</a></form>
+<p class="login-footnote">Exatas: ADM, ELT, STB, DSI, ELP e BCV · Saúde: RAD, ENF, EIC e FLB.<br>A gestora reúne as duas coordenações e suas demandas privadas.</p></main></body></html>

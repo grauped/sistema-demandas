@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Instrutores e contratos · Minhas Demandas</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="contracts.css">
+    <link rel="stylesheet" href="auth.css">
+    <script src="auth.js" defer></script>
+    <script src="contracts-core.js" defer></script>
+    <script src="access-policy.js" defer></script>
+    <script src="assets/vendor/pdf-lib.min.js" defer></script>
+    <script src="assets/contract-template.js" defer></script>
+    <script src="contract-pdf.js" defer></script>
+    <script src="cost-report.js" defer></script>
+    <script src="contracts.js" defer></script>
+</head>
+<body class="contracts-app auth-protected">
+    <aside class="sidebar">
+        <div class="logo"><div class="logo-icon">✓</div><div><h1>Minhas</h1><span>Demandas</span></div></div>
+        <nav class="menu" aria-label="Navegação">
+            <a href="index.html" class="menu-item" data-manager-only><span aria-hidden="true">📊</span> Demandas da gestora</a>
+            <button class="menu-item active" data-tab="instructors" aria-current="page"><span aria-hidden="true">👥</span> Instrutores</button>
+            <button class="menu-item" data-tab="contracts"><span aria-hidden="true">📄</span> Contratos</button>
+            <button class="menu-item" data-tab="reports"><span aria-hidden="true">📈</span> Orçamento mensal</button>
+        </nav>
+        <div class="sidebar-bottom storage-note">Dados salvos no banco local.<br>Acesso restrito ao seu perfil.</div>
+    </aside>
+    <main class="main">
+        <header class="topbar"><div><span class="eyebrow">GESTÃO DE INSTRUTORES</span><h2 id="moduleTitle">Instrutores</h2></div>
+            <div class="toolbar"><button class="btn-secondary" id="backupExport">Exportar backup</button><button class="text-button" id="backupImport">Restaurar backup</button><button class="text-button" id="backupPrevious" hidden>Baixar cópia anterior</button><input type="file" id="backupFile" accept=".json,application/json" hidden></div>
+        </header>
+        <p class="module-error" id="storageError" role="alert" hidden></p>
+        <label class="department-filter" data-manager-only>Visão da gestora · coordenação<select id="departmentFilter"><option value="">Todas as coordenações</option><option value="exatas">Exatas</option><option value="saude">Saúde</option><option value="unassigned">Cadastros antigos a classificar</option></select></label>
+        <section class="module-panel" id="instructorsPanel" aria-labelledby="instructorsHeading">
+            <div class="section-header"><div><h3 id="instructorsHeading">Cadastro de instrutores</h3><p>Cadastre uma vez. Reutilize os dados pessoais e de pagamento nos próximos contratos.</p></div><button class="btn-primary" id="newInstructor">+ Cadastrar instrutor</button></div>
+            <div class="filters"><input type="search" id="instructorSearch" placeholder="Buscar por nome ou documento" aria-label="Buscar instrutores"><label class="inline-check"><input type="checkbox" id="includeInactive"> Mostrar inativos</label></div>
+            <div id="instructorList" class="record-list"></div>
+            <form id="requesterForm" class="module-card requester-form"><label>Solicitante padrão<input id="defaultRequester" maxlength="90" placeholder="Nome de quem solicita os contratos"></label><button class="btn-secondary" type="submit">Salvar solicitante</button><p class="help">Preenchido automaticamente nas novas solicitações. Pode ser alterado em cada contrato.</p></form>
+        </section>
+        <section class="module-panel" id="contractsPanel" aria-labelledby="contractsHeading" hidden>
+            <div class="section-header"><div><h3 id="contractsHeading">Contratos e previsão de despesas</h3><p>Selecione o instrutor cadastrado e registre os dados específicos de cada contratação.</p></div><button class="btn-primary" id="newContract">+ Novo registro</button></div>
+            <div class="model-note"><strong>Solicitação de contrato · modelo da instituição</strong><p>PDF em uma página, com canhoto preenchido automaticamente. Os espaços de assinatura e dos setores administrativo e financeiro ficam disponíveis para preenchimento posterior.</p></div>
+            <div class="filters"><input type="search" id="contractSearch" placeholder="Buscar instrutor, curso ou turma" aria-label="Buscar contratos"><label class="inline-check"><input type="checkbox" id="includeCancelled"> Mostrar cancelados</label></div>
+            <div class="filters"><label>Mês do contrato · ciclo 7 a 6<input type="month" id="contractMonth"></label><button class="text-button" id="allContractMonths">Todos os meses</button><label>Situação<select id="approvalFilter"><option value="">Todas</option><option value="pending">Pendentes de aprovação</option><option value="approved">Aprovados</option></select></label></div>
+            <p class="help" id="contractMonthHelp">O filtro considera a data de término. Somente contratos aprovados entram no orçamento.</p>
+            <div id="contractList" class="record-list"></div>
+        </section>
+        <section class="module-panel" id="reportsPanel" aria-labelledby="reportsHeading" hidden>
+            <div class="section-header"><div><h3 id="reportsHeading">Orçamento mensal de instrutores</h3><p>Somente contratos aprovados pela gestora e não cancelados. O período considera a data de término da disciplina.</p></div></div>
+            <form id="reportFilters" class="module-card report-filters">
+                <label>Mês inicial do ciclo (dia 7)<input type="month" id="reportCycle" required></label>
+                <label>De<input type="date" id="reportStart" required></label>
+                <label>Até<input type="date" id="reportEnd" required></label>
+                <label>Curso<select id="reportCourse"><option value="">Todos os cursos</option></select></label>
+                <label>Turma<input id="reportGroup" placeholder="Todas" inputmode="numeric" pattern="[0-9]*"></label>
+                <button class="btn-primary" type="submit">Atualizar relatório</button>
+                <p class="help full-row">O ciclo padrão vai do dia 7 ao dia 6 do mês seguinte, incluindo as duas datas. Você pode ajustar o período acima.</p>
+            </form>
+            <div class="report-heading"><div><p id="reportPeriod"></p><h2 id="reportTotal"></h2><p id="reportCount"></p></div><button class="btn-secondary" id="reportExport">Baixar relatório CSV</button><button class="btn-primary" id="reportExcel">Baixar relatório Excel</button></div>
+            <div id="courseSummary" class="course-summary"></div>
+            <div class="table-scroll"><table><caption class="sr-only">Registros do orçamento selecionado</caption><thead><tr><th>Curso</th><th>Turma</th><th>Disciplina</th><th>Data inicial</th><th>Data final</th><th>Valor da hora/aula</th><th>Quantidade de aulas</th><th>Horas totais</th><th>Valor (instrutor)</th></tr></thead><tbody id="reportRows"></tbody></table></div>
+        </section>
+    </main>
+    <dialog id="instructorDialog" class="module-dialog" aria-labelledby="instructorDialogTitle">
+        <form id="instructorForm">
+            <div class="section-header"><h2 id="instructorDialogTitle">Cadastrar instrutor</h2><button type="button" class="icon-button" data-close="instructorDialog" aria-label="Fechar cadastro">×</button></div>
+            <input type="hidden" id="instructorId">
+            <div class="module-fields">
+                <label class="full-row" id="instructorDepartmentLabel">Coordenação *<select id="instructorDepartment" required><option value="">Selecione a coordenação</option><option value="exatas">Exatas · ADM, ELT, STB, DSI, ELP e BCV</option><option value="saude">Saúde · RAD, ENF, EIC e FLB</option></select></label>
+                <label class="full-row">Nome completo *<input id="instructorName" required maxlength="180" autocomplete="name"></label>
+                <label>MEI / CPF *<input id="instructorDocument" maxlength="24" required></label>
+                <label>Telefone ou e-mail<input id="instructorContact" maxlength="180"></label>
+                <label class="full-row">Endereço *<input id="instructorAddress" maxlength="160" required></label>
+                <label>Número *<input id="instructorNumber" maxlength="12" required placeholder="Ex.: 72 ou s/n"></label>
+                <label>Complemento<input id="instructorComplement" maxlength="50"></label>
+                <label>Bairro *<input id="instructorNeighborhood" maxlength="70" required></label>
+                <label>Cidade *<input id="instructorCity" maxlength="60" required></label>
+                <label>UF *<select id="instructorState" required><option value="">Selecione</option></select></label>
+                <label>CEP *<input id="instructorPostalCode" maxlength="9" pattern="[0-9]{5}-?[0-9]{3}" inputmode="numeric" required></label>
+                <label>Tipo de chave Pix<select id="instructorPixType"><option value="email">E-mail</option><option value="cpf">CPF / CNPJ</option><option value="phone">Telefone</option><option value="random">Aleatória</option></select></label>
+                <label>Chave Pix *<input id="instructorPix" maxlength="120" required></label>
+                <fieldset class="full-row document-checklist"><legend>Checklist de documentos (primeiro contrato)</legend>
+                    <label class="inline-check"><input type="checkbox" id="docRg"> RG ou CNH</label>
+                    <label class="inline-check"><input type="checkbox" id="docCpf"> CPF ou CNH</label>
+                    <label class="inline-check"><input type="checkbox" id="docResidence"> Comprovante de residência</label>
+                    <label class="inline-check"><input type="checkbox" id="docDegree"> Diploma de graduação</label>
+                    <label class="inline-check"><input type="checkbox" id="docOther"> Outros diplomas</label>
+                </fieldset>
+            </div>
+            <p class="help">A conta de destino deve ser de titularidade do instrutor. Alterações no cadastro serão usadas nos novos contratos; os anteriores mantêm os dados originais. O checklist registra a conferência, sem armazenar cópias dos documentos.</p>
+            <p id="instructorError" class="form-error" role="alert"></p>
+            <div class="modal-actions"><button type="button" class="btn-secondary" data-close="instructorDialog">Cancelar</button><button type="submit" class="btn-primary">Salvar instrutor</button></div>
+        </form>
+    </dialog>
+    <dialog id="contractDialog" class="module-dialog" aria-labelledby="contractDialogTitle">
+        <form id="contractForm">
+            <div class="section-header"><h2 id="contractDialogTitle">Novo registro</h2><button type="button" class="icon-button" data-close="contractDialog" aria-label="Fechar registro">×</button></div>
+            <input type="hidden" id="contractId">
+            <div class="module-fields">
+                <label class="full-row">Instrutor *<select id="contractInstructor" required></select></label>
+                <div class="instructor-preview full-row" id="instructorPreview"></div>
+                <label class="full-row">Disciplina *<input id="contractDiscipline" required maxlength="120"></label>
+                <label>Modalidade *<select id="contractType"><option value="theory">Teórica</option><option value="practice">Prática</option><option value="both">Teórica e prática</option></select></label>
+                <label>Quantidade de aulas *<input id="contractLessons" type="number" min="1" step="1" required></label>
+                <label>Carga horária *<input id="contractHours" required inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="Ex.: 52"></label>
+                <label>Valor hora-aula (R$) *<input id="contractHourRate" required inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="Ex.: 14,70"></label>
+                <label>Curso *<select id="contractCourse" required></select></label>
+                <label>Turma *<input id="contractGroup" required pattern="[0-9]+" inputmode="numeric" maxlength="20" placeholder="Ex.: 24"></label>
+                <label>Turno<select id="contractShift"><option value="">Sem sufixo</option><option value="M">Manhã (M)</option><option value="T">Tarde (T)</option><option value="N">Noite (N)</option><option value="I">Integral (I)</option></select></label>
+                <label>Data início *<input type="date" id="contractStart" required></label>
+                <label>Data fim *<input type="date" id="contractEnd" required></label>
+                <label>Solicitante *<input id="contractRequester" required maxlength="90"></label>
+                <label>Data da solicitação *<input type="date" id="contractRequestDate" required></label>
+                <label>Orçamento · data de término<input type="date" id="contractReference" readonly></label>
+                <div class="calculated-total"><span>Valor previsto · carga horária × hora-aula</span><strong id="contractCalculated">R$ 0,00</strong></div>
+                <label class="full-row">Observações<textarea id="contractNotes" maxlength="2000" rows="3"></textarea></label>
+            </div>
+            <p class="help" id="budgetHelp">Após aprovação pela gestora, o valor integral entra no ciclo de 7 a 6 que contém a data de término da disciplina. Alterações em contratos aprovados exigem nova aprovação. Solicitante e data de solicitação são preenchidos automaticamente nos próximos registros.</p>
+            <p id="contractError" class="form-error" role="alert"></p>
+            <div class="modal-actions"><button type="button" class="btn-secondary" data-close="contractDialog">Cancelar</button><button class="btn-primary" type="submit">Salvar registro</button></div>
+        </form>
+    </dialog>
+    <dialog id="pdfDialog" class="module-dialog pdf-dialog" aria-labelledby="pdfTitle">
+        <div class="section-header"><h2 id="pdfTitle">Solicitação de contrato</h2><button class="btn-secondary" data-close="pdfDialog">Fechar</button></div>
+        <p id="pdfPreviewStatus" role="status">Carregando prévia…</p>
+        <div class="pdf-preview"><canvas id="pdfCanvas" role="img" aria-label="Prévia da solicitação de contrato, com canhoto, em uma página A4"></canvas></div>
+        <div class="modal-actions"><button class="btn-primary" id="pdfDownload">Baixar PDF</button></div>
+    </dialog>
+    <dialog id="backupDialog" class="module-dialog" aria-labelledby="backupTitle">
+        <h2 id="backupTitle">Restaurar backup</h2><p id="backupSummary"></p><p>Os cadastros e contratos acessíveis ao seu perfil serão substituídos pelo arquivo. Os dados de outras coordenações serão preservados. Uma cópia anterior ficará guardada no banco local.</p>
+        <form method="dialog" class="modal-actions"><button class="btn-secondary" value="cancel">Cancelar</button><button class="btn-primary" value="restore">Restaurar</button></form>
+    </dialog>
+    <div class="toast" id="moduleToast" role="status" aria-live="polite"></div>
+</body>
+</html>
