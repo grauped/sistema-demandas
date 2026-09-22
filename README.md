@@ -67,3 +67,7 @@ A lista de contratos tem filtro por mês do ciclo de 7 a 6, usando a data de té
 O relatório de despesas segue as nove colunas do modelo institucional, com exportação **Excel (.xlsx)** e CSV. Inclui curso, turma, disciplina, datas inicial e final, valor hora/aula, quantidade de aulas, horas totais e valor do instrutor. Informe a quantidade de aulas ao elaborar ou editar o contrato; registros antigos sem essa informação deixam a célula vazia no Excel. O valor permanece baseado nas horas totais × valor hora/aula, sem presumir duração fixa para cada aula.
 
 Verificação completa: `node --test app.test.cjs contracts.test.cjs access.test.cjs cost-report.test.cjs`.
+
+## Índice necessário no Firestore
+
+A consulta do backup mais recente por perfil requer o índice composto definido em `firestore.indexes.json`: coleção `backups`, campo `role` crescente e campo `created` decrescente, com escopo de coleção. Crie esse índice no console do projeto Firebase e aguarde o estado habilitado antes de usar a consulta de backups. O deploy da Vercel não cria índices do Firestore automaticamente.
