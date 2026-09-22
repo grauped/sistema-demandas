@@ -101,3 +101,29 @@ test('servidor autentica apenas os três e-mails e isola consultas, gravações,
     assert.equal((await call('/api/contracts',{session:sessions.exatas})).status,401);
     assert.equal((await call('/api/register',{method:'POST',session:sessions.gestora,data:{username:'novo@gmail.com'}})).status,404);
 });
+
+test('login sem socket autentica e mantém limite de tentativas',async()=>{
+    const {Readable}=require('node:stream');
+    const {createAPI}=require('./api.cjs');
+    const {passwordHash}=require('./database.cjs');
+    const user={username:ACCOUNTS.exatas,role:'exatas',...await passwordHash(passwords.exatas)};
+    const sessions=[];
+    const api=createAPI({setupDone:async()=>true,getUser:async()=>user,clearExpiredSessions:async()=>{},createSession:async value=>sessions.push(value)});
+    async function login(socket,password){
+        const req=Readable.from([Buffer.from(JSON.stringify({username:user.username,password}))]);
+        Object.assign(req,{method:'POST',headers:{'content-type':'application/json','x-forwarded-proto':'https'},socket});
+        const result={headers:{}};
+        const res={writeHead(status){result.status=status;},setHeader(key,value){result.headers[key]=value;},end(value){result.data=JSON.parse(value);}};
+        await api.handle(req,res,'/api/login');return result;
+    }
+    for(const socket of [null,undefined]){
+        const result=await login(socket,passwords.exatas);
+        assert.equal(result.status,200);
+        assert.equal(result.data.user.role,'exatas');
+        assert.match(result.headers['Set-Cookie'],/Secure/);
+        assert.ok(result.data.csrf);
+    }
+    assert.equal(sessions.length,2);
+    for(let i=0;i<5;i++)assert.equal((await login(null,'senha-incorreta')).status,401);
+    assert.equal((await login(null,'senha-incorreta')).status,429);
+});
