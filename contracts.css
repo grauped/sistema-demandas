@@ -72,3 +72,9 @@
 #reportsPanel td:nth-child(4), #reportsPanel td:nth-child(5), #reportsPanel td:nth-child(6) { white-space: nowrap; }
 .record-status.pending { background: #fff3cd; color: #805b00; }
 .filters label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; }
+
+.bulk-approval { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px; margin-bottom: 16px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; }
+.bulk-approval[hidden] { display: none; }
+.bulk-approval .inline-check, .contract-select { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; }
+.contract-select { margin-bottom: 12px; cursor: pointer; }
+.bulk-approval input, .contract-select input { width: 18px; height: 18px; accent-color: #2563eb; }

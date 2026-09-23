@@ -45,6 +45,11 @@
             <div class="filters"><input type="search" id="contractSearch" placeholder="Buscar instrutor, curso ou turma" aria-label="Buscar contratos"><label class="inline-check"><input type="checkbox" id="includeCancelled"> Mostrar cancelados</label></div>
             <div class="filters"><label>Mês do contrato · ciclo 7 a 6<input type="month" id="contractMonth"></label><button class="text-button" id="allContractMonths">Todos os meses</button><label>Situação<select id="approvalFilter"><option value="">Todas</option><option value="pending">Pendentes de aprovação</option><option value="approved">Aprovados</option></select></label></div>
             <p class="help" id="contractMonthHelp">O filtro considera a data de término. Somente contratos aprovados entram no orçamento.</p>
+            <div id="bulkApproval" class="bulk-approval" hidden>
+                <label class="inline-check"><input type="checkbox" id="selectAllContracts"> Marcar todos os pendentes exibidos</label>
+                <span id="selectedContractCount" role="status" aria-live="polite">0 selecionados</span>
+                <button class="btn-primary" id="approveSelected" disabled>Aprovar selecionados</button>
+            </div>
             <div id="contractList" class="record-list"></div>
         </section>
         <section class="module-panel" id="reportsPanel" aria-labelledby="reportsHeading" hidden>

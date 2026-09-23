@@ -9,6 +9,8 @@
     let revision = 0;
     let saving = false;
     let previousBackup = null;
+    const selectedContracts = new Set();
+    let selectableContracts = [];
     const $ = id => document.getElementById(id);
     const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
     const money = cents => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -56,7 +58,7 @@
             data = result.data; revision = result.revision;
             $('storageError').hidden = true; render(); return true;
         } catch(error) { notify(error.message || 'Não foi possível salvar.'); return false; }
-        finally { saving = false; }
+        finally { saving = false; renderContracts(); }
     }
 
     function switchTab(tab) {
@@ -146,8 +148,12 @@
         const rows = viewContracts().filter(item => (!period || (item.endDate >= period.start && item.endDate <= period.end)) && (!$('approvalFilter').value || (item.approvalStatus || 'pending') === $('approvalFilter').value) && ($('includeCancelled').checked || !item.cancelled) &&
             `${item.instructorSnapshot.name} ${item.discipline} ${C.groupLabel(item)} ${item.number}`.toLocaleLowerCase('pt-BR').includes(query));
         rows.sort((a,b) => b.requestDate.localeCompare(a.requestDate) || b.number.localeCompare(a.number));
+        selectableContracts = role === 'gestora' ? rows.filter(item => !item.cancelled && item.approvalStatus !== 'approved') : [];
+        const eligibleIds = new Set(selectableContracts.map(item => item.id));
+        for (const id of selectedContracts) if (!eligibleIds.has(id)) selectedContracts.delete(id);
+        updateBulkApproval();
         $('contractList').innerHTML = rows.length ? rows.map(item => `
-            <article class="record-card"><div><h4>${escape(item.discipline)} · ${escape(C.groupLabel(item))}</h4><p>${escape(item.instructorSnapshot.name)}</p>
+            <article class="record-card"><div>${role === 'gestora' && !item.cancelled && item.approvalStatus !== 'approved' ? `<label class="contract-select"><input type="checkbox" data-select-contract="${escape(item.id)}" aria-label="Selecionar ${escape(item.number)}" ${selectedContracts.has(item.id) ? 'checked' : ''} ${saving ? 'disabled' : ''}> Selecionar</label>` : ''}<h4>${escape(item.discipline)} · ${escape(C.groupLabel(item))}</h4><p>${escape(item.instructorSnapshot.name)}</p>
             <p>${escape(item.number)} · ${dateBR(item.startDate)} a ${dateBR(item.endDate)} · ${item.hoursUnits / 100} h</p>
             <p>Orçamento: ${dateBR(item.referenceDate)}</p><span class="record-status ${item.cancelled ? 'inactive' : item.approvalStatus === 'approved' ? '' : 'pending'}">${item.cancelled ? 'Cancelado · fora do orçamento' : item.approvalStatus === 'approved' ? `Aprovado pela gestora${item.approvedAt ? ' em ' + dateBR(item.approvedAt.slice(0,10)) : ''}` : 'Pendente de aprovação'}</span></div>
             <div class="record-actions">${role === 'gestora' && !item.cancelled ? `<button class="btn-primary" data-contract="approve" data-id="${escape(item.id)}">${item.approvalStatus === 'approved' ? 'Retirar aprovação' : 'Aprovar contrato'}</button>` : ''}<strong class="record-total">${money(item.amountCents)}</strong>
@@ -156,6 +162,17 @@
             <button class="text-button" data-contract="copy" data-id="${escape(item.id)}">Reutilizar</button>
             <button class="text-button" data-contract="toggle" data-id="${escape(item.id)}">${item.cancelled ? 'Reativar' : 'Cancelar registro'}</button></div></article>`).join('') :
             '<div class="empty-state"><strong>Nenhum contrato encontrado.</strong><span>Selecione um instrutor e preencha os dados pedagógicos.</span></div>';
+    }
+
+    function updateBulkApproval() {
+        $('bulkApproval').hidden = role !== 'gestora';
+        const count = selectedContracts.size;
+        $('selectedContractCount').textContent = `${count} selecionado(s)`;
+        $('selectAllContracts').checked = selectableContracts.length > 0 && count === selectableContracts.length;
+        $('selectAllContracts').indeterminate = count > 0 && count < selectableContracts.length;
+        $('selectAllContracts').disabled = saving || !readable || !selectableContracts.length;
+        $('approveSelected').disabled = saving || !readable || !count;
+        $('approveSelected').textContent = saving ? 'Aguarde…' : `Aprovar selecionados (${count})`;
     }
 
     function openContract({ id = '', instructorId = '', copy = false } = {}) {
@@ -332,13 +349,38 @@
         else if (button.dataset.instructor==='contract') openContract({instructorId:item.id});
         else { const next=clone(data); next.instructors.find(person=>person.id===item.id).active=!item.active; if(await commit(next)) notify(item.active?'Instrutor desativado. Os contratos foram preservados.':'Instrutor reativado.'); }
     });
+    $('selectAllContracts').addEventListener('change',()=>{
+        if(saving || role !== 'gestora')return;
+        selectedContracts.clear();
+        if($('selectAllContracts').checked)for(const item of selectableContracts)selectedContracts.add(item.id);
+        renderContracts();
+    });
+    $('contractList').addEventListener('change',event=>{
+        const checkbox=event.target.closest('[data-select-contract]');
+        if(!checkbox || saving || role !== 'gestora')return;
+        const id=checkbox.dataset.selectContract;
+        if(!selectableContracts.some(item=>item.id===id))return;
+        if(checkbox.checked)selectedContracts.add(id);else selectedContracts.delete(id);
+        updateBulkApproval();
+    });
+    $('approveSelected').addEventListener('click',async()=>{
+        if(saving || !readable || role !== 'gestora' || !selectedContracts.size)return;
+        const ids=[...selectedContracts];
+        saving=true;renderContracts();
+        try{
+            const result=await Auth.api('/api/contracts/approval/batch',{method:'POST',data:{ids,revision}});
+            data=result.data;revision=result.revision;selectedContracts.clear();render();
+            notify(`${result.approvedCount} contrato(s) aprovado(s) e incluído(s) no orçamento.`);
+        }catch(error){notify(error.message);}
+        finally{saving=false;renderContracts();}
+    });
     $('contractList').addEventListener('click',async event=>{
         const button=event.target.closest('[data-contract]'); if(!button)return;
         const item=data.contracts.find(item=>item.id===button.dataset.id); if(!item)return;
         if(button.dataset.contract==='pdf') showPDF(item);
         else if(button.dataset.contract==='approve') {
             if(saving)return;saving=true;
-            try{const result=await Auth.api('/api/contracts/approval',{method:'POST',data:{id:item.id,status:item.approvalStatus==='approved'?'pending':'approved',revision}});data=result.data;revision=result.revision;render();notify(item.approvalStatus==='approved'?'Aprovação retirada. Contrato fora do orçamento.':'Contrato aprovado e incluído no orçamento do período de término.');}catch(error){notify(error.message);}finally{saving=false;}
+            try{const result=await Auth.api('/api/contracts/approval',{method:'POST',data:{id:item.id,status:item.approvalStatus==='approved'?'pending':'approved',revision}});data=result.data;revision=result.revision;render();notify(item.approvalStatus==='approved'?'Aprovação retirada. Contrato fora do orçamento.':'Contrato aprovado e incluído no orçamento do período de término.');}catch(error){notify(error.message);}finally{saving=false;renderContracts();}
         }
         else if(button.dataset.contract==='edit') openContract({id:item.id});
         else if(button.dataset.contract==='copy') openContract({id:item.id,copy:true});

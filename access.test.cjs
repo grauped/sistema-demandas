@@ -97,6 +97,24 @@ test('servidor autentica apenas os três e-mails e isola consultas, gravações,
     response=await call('/api/contracts',{method:'PUT',session:sessions.exatas,data:scope});
     assert.equal(response.data.data.contracts[0].approvalStatus,'pending');assert.equal(response.data.data.contracts[0].approvedBy,null);
     assert.equal(C.report(response.data.data.contracts,C.cycle('2026-09')).total,0);
+    // Batch approval is manager-only, validates the whole selection and writes one revision.
+    const beforeBatch=(await call('/api/contracts',{session:sessions.gestora})).data;
+    const batch={ids:['ex-contract','sa-contract'],revision:beforeBatch.revision};
+    assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.exatas,data:batch})).status,403);
+    assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,csrf:false,data:batch})).status,403);
+    for(const ids of [[],['ex-contract','ex-contract'],[null]])assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:{...batch,ids}})).status,400);
+    assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:{...batch,revision:batch.revision-1}})).status,409);
+    assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:{...batch,ids:['ex-contract','missing']}})).status,404);
+    assert.deepEqual((await call('/api/contracts',{session:sessions.gestora})).data,beforeBatch);
+    const batchResult=await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:batch});
+    assert.equal(batchResult.status,200);assert.equal(batchResult.data.approvedCount,2);assert.equal(batchResult.data.revision,batch.revision+1);
+    for(const item of batchResult.data.data.contracts){assert.equal(item.approvalStatus,'approved');assert.equal(item.approvedBy,ACCOUNTS.gestora);assert.ok(item.approvedAt);}
+    assert.equal(new Set(batchResult.data.data.contracts.map(item=>item.approvedAt)).size,1);
+    assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:{...batch,revision:batchResult.data.revision}})).status,409);
+    const cancelled=structuredClone(batchResult.data);cancelled.data.contracts[0].cancelled=true;
+    const cancelledSaved=await call('/api/contracts',{method:'PUT',session:sessions.gestora,data:cancelled});assert.equal(cancelledSaved.status,200);
+    assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:{ids:[cancelled.data.contracts[0].id],revision:cancelledSaved.data.revision}})).status,409);
+    assert.equal((await call('/api/contracts',{session:sessions.gestora})).data.revision,cancelledSaved.data.revision);
     assert.equal((await call('/api/logout',{method:'POST',session:sessions.exatas,data:{}})).status,200);
     assert.equal((await call('/api/contracts',{session:sessions.exatas})).status,401);
     assert.equal((await call('/api/register',{method:'POST',session:sessions.gestora,data:{username:'novo@gmail.com'}})).status,404);
