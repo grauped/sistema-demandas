@@ -264,7 +264,7 @@
             $('reportTotal').textContent = money(result.total);
             $('reportCount').textContent = `${result.rows.length} solicitação(ões) · orçamento previsto`;
             $('courseSummary').innerHTML = result.byCourse.map(item=>`<div class="module-card">${escape(item.course)} · ${item.count}<strong>${money(item.total)}</strong></div>`).join('');
-            $('reportRows').innerHTML = result.rows.length ? result.rows.map(item=>'<tr>'+CostReport.values(item).map((value,index)=>`<td>${escape(index===5||index===6?dateBR(value):index===7||index===9?money(value*100):value ?? 'Não informada')}</td>`).join('')+'</tr>').join('') : '<tr><td colspan="10">Nenhum contrato aprovado neste período e filtro.</td></tr>';
+            $('reportRows').innerHTML = result.rows.length ? result.rows.map(item=>'<tr>'+[item.instructorSnapshot.name, item.discipline, ({theory:'Teórica',practice:'Prática',both:'Teórica e prática'})[item.type] || 'Não informado', (item.hoursUnits / 100).toLocaleString('pt-BR'), money(item.hourRateCents), dateBR(item.startDate), dateBR(item.endDate), C.groupLabel(item), money(item.amountCents), item.instructorSnapshot.pix || 'Não informada'].map(value=>`<td>${escape(value)}</td>`).join('')+'</tr>').join('') : '<tr><td colspan="10">Nenhum contrato aprovado neste período e filtro.</td></tr>';
             $('reportExport').disabled = $('reportExcel').disabled = !readable;
             return result;
         } catch (error) {
