@@ -264,7 +264,7 @@
             $('reportTotal').textContent = money(result.total);
             $('reportCount').textContent = `${result.rows.length} solicitação(ões) · orçamento previsto`;
             $('courseSummary').innerHTML = result.byCourse.map(item=>`<div class="module-card">${escape(item.course)} · ${item.count}<strong>${money(item.total)}</strong></div>`).join('');
-            $('reportRows').innerHTML = result.rows.length ? result.rows.map(item=>'<tr>'+CostReport.values(item).map((value,index)=>`<td>${escape(index===3||index===4?dateBR(value):index===5||index===8?money(value*100):value ?? 'Não informada')}</td>`).join('')+'</tr>').join('') : '<tr><td colspan="9">Nenhum contrato aprovado neste período e filtro.</td></tr>';
+            $('reportRows').innerHTML = result.rows.length ? result.rows.map(item=>'<tr>'+CostReport.values(item).map((value,index)=>`<td>${escape(index===5||index===6?dateBR(value):index===7||index===9?money(value*100):value ?? 'Não informada')}</td>`).join('')+'</tr>').join('') : '<tr><td colspan="10">Nenhum contrato aprovado neste período e filtro.</td></tr>';
             $('reportExport').disabled = $('reportExcel').disabled = !readable;
             return result;
         } catch (error) {
@@ -285,7 +285,7 @@
     function exportReport() {
         const result = renderReport(); if (!result) return;
         const f = filters();
-        const rows = [[reportTitle()], ['Período',dateBR(f.start),dateBR(f.end)], ['Curso',f.course || 'Todos'],['Turma',f.group || 'Todas'], [], CostReport.headers, ...result.rows.map(item=>CostReport.values(item).map((value,index)=>index===3||index===4?dateBR(value):typeof value==='number'?String(value).replace('.',','):value ?? '')), [],['VALOR TOTAL','','','','','','','',(result.total/100).toFixed(2).replace('.',',')]];
+        const rows = [[reportTitle()], ['Período',dateBR(f.start),dateBR(f.end)], ['Curso',f.course || 'Todos'],['Turma',f.group || 'Todas'], [], CostReport.headers, ...result.rows.map(item=>CostReport.values(item).map((value,index)=>index===5||index===6?dateBR(value):typeof value==='number'?String(value).replace('.',','):value ?? '')), [],['VALOR TOTAL','','','','','','','','',(result.total/100).toFixed(2).replace('.',',')]];
         download(new Blob([C.csv(rows)],{type:'text/csv;charset=utf-8'}),`orcamento-${f.start}-${f.end}${f.course ? '-'+f.course : ''}.csv`);
     }
 

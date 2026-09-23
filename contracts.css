@@ -66,10 +66,11 @@
     .toolbar { gap: 8px; }
     .toolbar button { font-size: 12px; }
 }
-#reportsPanel table { min-width: 1180px; }
+#reportsPanel table { min-width: 1400px; }
 #reportsPanel th { background: #6aa84f; color: #142b12; }
 #reportsPanel td:nth-child(3) { min-width: 220px; }
-#reportsPanel td:nth-child(4), #reportsPanel td:nth-child(5), #reportsPanel td:nth-child(6) { white-space: nowrap; }
+#reportsPanel td:nth-child(4) { min-width: 200px; }
+#reportsPanel td:nth-child(5), #reportsPanel td:nth-child(6), #reportsPanel td:nth-child(7), #reportsPanel td:nth-child(8) { white-space: nowrap; }
 .record-status.pending { background: #fff3cd; color: #805b00; }
 .filters label { display: flex; flex-direction: column; gap: 7px; font-size: 12px; }
 
