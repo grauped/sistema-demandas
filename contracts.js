@@ -105,7 +105,7 @@
         $('instructorError').textContent = '';
         $('instructorId').value = id;
         const item = data.instructors.find(item => item.id === id);
-        $('instructorDepartment').value = item?.department === 'unassigned' ? '' : item?.department || (role === 'gestora' ? $('departmentFilter').value : role);
+        $('instructorDepartment').value = item?.department || (role === 'gestora' ? $('departmentFilter').value : role);
         $('instructorDepartment').disabled = role !== 'gestora' || !!(item && data.contracts.some(record => record.instructorId === item.id));
         $('instructorDialogTitle').textContent = item ? 'Editar instrutor' : 'Cadastrar instrutor';
         if (item) {
@@ -121,14 +121,14 @@
         const old = data.instructors.find(item => item.id === $('instructorId').value);
         if ($('instructorId').value && !old) { $('instructorError').textContent = 'O cadastro não existe mais. Feche o formulário e tente novamente.'; return; }
         const department = role === 'gestora' ? $('instructorDepartment').value : role;
-        if (!P.departments.includes(department)) { $('instructorError').textContent = 'Selecione a coordenação do instrutor.'; return; }
+        if (!P.departments.includes(department) && !(role === 'gestora' && department === 'unassigned')) { $('instructorError').textContent = 'Selecione a coordenação do instrutor.'; return; }
         const instructor = { id: old?.id || uid(), active: old?.active ?? true, department, documents: {} };
         for (const [key, suffix] of Object.entries(instructorFields)) instructor[key] = $('instructor' + suffix).value.trim();
         for (const [key, suffix] of Object.entries(documentFields)) instructor.documents[key] = $('doc' + suffix).checked;
         const required = ['name', 'document', 'address', 'number', 'neighborhood', 'city', 'state', 'postalCode', 'pix'];
         if (required.some(key => !instructor[key])) { $('instructorError').textContent = 'Preencha os campos obrigatórios sem deixar apenas espaços.'; return; }
         const normalizedDocument = value => value.replace(/[^\p{L}\p{N}]/gu,'').toLowerCase();
-        if (data.instructors.some(item => item.id !== instructor.id && item.department === department && normalizedDocument(item.document) === normalizedDocument(instructor.document))) {
+        if (normalizedDocument(instructor.document) && data.instructors.some(item => item.id !== instructor.id && item.department === department && normalizedDocument(item.document) === normalizedDocument(instructor.document))) {
             $('instructorError').textContent = 'Já existe um instrutor com esse documento nesta coordenação, inclusive entre os inativos. Edite ou reative o cadastro existente.'; return;
         }
         if (instructor.pixType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(instructor.pix)) { $('instructorError').textContent = 'Informe um e-mail válido para a chave Pix.'; return; }
@@ -159,16 +159,16 @@
     }
 
     function openContract({ id = '', instructorId = '', copy = false } = {}) {
-        if (!viewInstructors().some(item => item.active && P.departments.includes(item.department)) && !id) { switchTab('instructors'); notify('Cadastre, classifique ou reative um instrutor desta coordenação antes de criar contratos.'); return; }
+        if (!viewInstructors().some(item => item.active && (P.departments.includes(item.department) || role === 'gestora')) && !id) { switchTab('instructors'); notify('Cadastre, classifique ou reative um instrutor desta coordenação antes de criar contratos.'); return; }
         const item = data.contracts.find(item => item.id === id);
         $('contractForm').reset();
         $('contractError').textContent = '';
         $('contractId').value = copy ? '' : id;
         $('contractDialogTitle').textContent = copy ? 'Reutilizar contrato' : item ? 'Editar solicitação' : 'Nova solicitação de contrato';
         const chosen = instructorId || item?.instructorId || '';
-        if (chosen && data.instructors.find(person => person.id === chosen)?.department === 'unassigned') { notify('A gestora precisa classificar a coordenação deste instrutor antes de criar contratos.'); return; }
-        $('contractInstructor').innerHTML = '<option value="">Selecione o instrutor</option>' + viewInstructors().filter(person => P.departments.includes(person.department) && (person.active || (!copy && person.id === chosen)))
-            .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(person => `<option value="${escape(person.id)}">${escape(person.name)} · ${person.department === 'exatas' ? 'Exatas' : 'Saúde'}${person.active ? '' : ' (inativo)'}</option>`).join('');
+        if (chosen && role !== 'gestora' && data.instructors.find(person => person.id === chosen)?.department === 'unassigned') { notify('A gestora precisa classificar a coordenação deste instrutor antes de criar contratos.'); return; }
+        $('contractInstructor').innerHTML = '<option value="">Selecione o instrutor</option>' + viewInstructors().filter(person => (P.departments.includes(person.department) || role === 'gestora') && (person.active || (!copy && person.id === chosen)))
+            .sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(person => `<option value="${escape(person.id)}">${escape(person.name)} · ${person.department === 'exatas' ? 'Exatas' : person.department === 'saude' ? 'Saúde' : 'Geral'}${person.active ? '' : ' (inativo)'}</option>`).join('');
         $('contractInstructor').value = chosen;
         updateCourses(item?.course);
         $('contractRequester').value = data.settings.requester;
@@ -189,7 +189,7 @@
     function updateCourses(preferred) {
         const person = data.instructors.find(item => item.id === $('contractInstructor').value);
         const previous = preferred || $('contractCourse').value;
-        const courses = person ? P.roles[person.department]?.courses || [] : allowedCourses;
+        const courses = person ? P.roles[person.department]?.courses || (role === 'gestora' ? ['GERAL'] : []) : allowedCourses;
         $('contractCourse').innerHTML = courses.map(code => `<option value="${code}">${code}</option>`).join('');
         if (courses.includes(previous)) $('contractCourse').value = previous;
     }
@@ -224,7 +224,7 @@
             const sequence = Math.max(0,...data.contracts.filter(item => item.number.startsWith(prefix)).map(item=>Number(item.number.slice(prefix.length)))) + 1;
             const record = { id: old?.id || uid(), number: old?.number || prefix + String(sequence).padStart(4,'0'),
                 instructorId: instructor.id, instructorSnapshot: clone(old?.instructorId === instructor.id ? old.instructorSnapshot : instructor),
-                lessonCount: Number($('contractLessons').value), hoursUnits, hourRateCents, amountCents: C.total(hoursUnits,hourRateCents), cancelled: old?.cancelled || false };
+                lessonCount: $('contractLessons').value ? Number($('contractLessons').value) : null, hoursUnits, hourRateCents, amountCents: C.total(hoursUnits,hourRateCents), cancelled: old?.cancelled || false };
             const fields = { discipline: 'Discipline', type: 'Type', course: 'Course', group: 'Group', shift: 'Shift', startDate: 'Start', endDate: 'End', requester: 'Requester', requestDate: 'RequestDate', referenceDate: 'Reference', notes: 'Notes' };
             for (const [key,suffix] of Object.entries(fields)) record[key] = $('contract'+suffix).value.trim();
             record.referenceDate = record.endDate;

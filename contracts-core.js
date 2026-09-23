@@ -4,7 +4,7 @@
     else root.ContractsCore = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     'use strict';
-    const courses = ['ADM', 'STB', 'ELT', 'DSI', 'ELP', 'BCV', 'ENF', 'RAD', 'EIC', 'FLB'];
+    const courses = ['ADM', 'STB', 'ELT', 'DSI', 'ELP', 'BCV', 'ENF', 'RAD', 'EIC', 'FLB', 'GERAL'];
     const empty = () => ({ version: 1, instructors: [], contracts: [], settings: { requester: '', budgetBasis: 'endDate' } });
     function validDate(value) {
         if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -42,7 +42,7 @@
         if (!contract || typeof contract.id !== 'string' || !contract.id ||
             typeof contract.number !== 'string' || !/^SC-\d{4}-\d+$/.test(contract.number) ||
             typeof contract.instructorId !== 'string' || !courses.includes(contract.course) ||
-            typeof contract.group !== 'string' || !/^\d+$/.test(contract.group) ||
+            typeof contract.group !== 'string' || !contract.group.trim() || contract.group.length > 80 || /[<>\x00-\x1f]/.test(contract.group) ||
             !validDate(contract.referenceDate) || !validDate(contract.startDate) || !validDate(contract.endDate) ||
             !validDate(contract.requestDate) || contract.startDate > contract.endDate || contract.referenceDate !== contract.endDate ||
             typeof contract.discipline !== 'string' || !contract.discipline.trim() ||
@@ -79,7 +79,7 @@
         return Math.round(product / 100);
     }
     function groupLabel(contract) {
-        return contract.course + contract.group + (contract.shift ? '-' + contract.shift : '');
+        return (contract.course === 'GERAL' ? '' : contract.course) + contract.group + (contract.shift ? '-' + contract.shift : '');
     }
     function report(contracts, { start, end, course = '', group = '' }) {
         if (!validDate(start) || !validDate(end) || start > end) throw new Error('Informe um período válido: a data final deve ser igual ou posterior à inicial.');

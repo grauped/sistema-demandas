@@ -2,7 +2,7 @@
 'use strict';
 const headers=['CURSO','TURMA','DISCIPLINA','DATA INICIAL','DATA FINAL','VALOR DA HORA/AULA','QUANTIDADE DE AULAS','HORAS TOTAIS','VALOR (INSTRUTOR)'];
 const names={ADM:'Técnico em Administração',STB:'Técnico em Segurança no Trabalho',ELT:'Técnico em Eletrotécnica',DSI:'Técnico em Desenvolvimento de Sistemas',ELP:'Técnico em Eletroeletrônica',BCV:'Bombeiro Civil',ENF:'Técnico em Enfermagem',RAD:'Técnico em Radiologia',EIC:'Técnico em Estética',FLB:'Técnico em Farmácia'};
-function values(item){return [names[item.course]||item.course,item.course+item.group+(item.shift?'-'+item.shift:''),item.discipline,item.startDate,item.endDate,item.hourRateCents/100,item.lessonCount??null,item.hoursUnits/100,item.amountCents/100];}
+function values(item){return [names[item.course]||item.course,(item.course==='GERAL'?'':item.course)+item.group+(item.shift?'-'+item.shift:''),item.discipline,item.startDate,item.endDate,item.hourRateCents/100,item.lessonCount??null,item.hoursUnits/100,item.amountCents/100];}
 const xml=value=>String(value??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const utf8=new TextEncoder();
 function crc(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;}

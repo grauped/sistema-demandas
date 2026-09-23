@@ -74,3 +74,22 @@ test('PDF gera uma página A4 e recusa campos que seriam cortados',async()=>{
 });
 
 module.exports = { instructor, contract };
+
+test('turmas agrupadas e gerais preservam identificação e valor sem multiplicar contratos',()=>{
+    const R=require('./cost-report.js'),P=require('./access-policy.js');
+    const cases=[['ENF','20/23','', 'ENF20/23'],['RAD','06,08M RAD01,03,09-N','','RAD06,08M RAD01,03,09-N'],['ELT','28-N-2D','','ELT28-N-2D'],['GERAL','AÇÕES','','AÇÕES']];
+    for(const [course,group,shift,label] of cases){
+        const department=P.courseDepartment(course);
+        const person={...instructor,department};
+        const item={...contract,course,group,shift,department,instructorSnapshot:person,lessonCount:null};
+        const data=P.normalize({...C.empty(),instructors:[person],contracts:[item]});
+        assert.equal(C.groupLabel(item),label);assert.equal(R.values(item)[1],label);
+        assert.equal(C.report([item],C.cycle('2026-09')).total,item.amountCents);
+        assert.equal(P.select(data,'gestora').contracts.length,1);
+        if(course==='GERAL'){
+            assert.equal(P.select(data,'exatas').contracts.length,0);
+            assert.equal(P.select(data,'saude').contracts.length,0);
+            assert.throws(()=>P.merge(data,P.select(data,'gestora'),'exatas'));
+        }
+    }
+});

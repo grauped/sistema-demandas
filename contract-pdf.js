@@ -9,7 +9,7 @@
         const font = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
         const page = pdf.getPages()[0];
         const instructor = record.instructorSnapshot;
-        const group = record.course + record.group + (record.shift ? '-' + record.shift : '');
+        const group = (record.course === 'GERAL' ? '' : record.course) + record.group + (record.shift ? '-' + record.shift : '');
         const values = {
             discipline: record.discipline, theory: ['theory','both'].includes(record.type) ? 'X' : '',
             practice: ['practice','both'].includes(record.type) ? 'X' : '',

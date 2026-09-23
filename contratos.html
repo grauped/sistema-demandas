@@ -54,7 +54,7 @@
                 <label>De<input type="date" id="reportStart" required></label>
                 <label>Até<input type="date" id="reportEnd" required></label>
                 <label>Curso<select id="reportCourse"><option value="">Todos os cursos</option></select></label>
-                <label>Turma<input id="reportGroup" placeholder="Todas" inputmode="numeric" pattern="[0-9]*"></label>
+                <label>Turma<input id="reportGroup" placeholder="Todas"></label>
                 <button class="btn-primary" type="submit">Atualizar relatório</button>
                 <p class="help full-row">O ciclo padrão vai do dia 7 ao dia 6 do mês seguinte, incluindo as duas datas. Você pode ajustar o período acima.</p>
             </form>
@@ -68,7 +68,7 @@
             <div class="section-header"><h2 id="instructorDialogTitle">Cadastrar instrutor</h2><button type="button" class="icon-button" data-close="instructorDialog" aria-label="Fechar cadastro">×</button></div>
             <input type="hidden" id="instructorId">
             <div class="module-fields">
-                <label class="full-row" id="instructorDepartmentLabel">Coordenação *<select id="instructorDepartment" required><option value="">Selecione a coordenação</option><option value="exatas">Exatas · ADM, ELT, STB, DSI, ELP e BCV</option><option value="saude">Saúde · RAD, ENF, EIC e FLB</option></select></label>
+                <label class="full-row" id="instructorDepartmentLabel">Coordenação *<select id="instructorDepartment" required><option value="">Selecione a coordenação</option><option value="unassigned">Geral · acesso da gestora</option><option value="exatas">Exatas · ADM, ELT, STB, DSI, ELP e BCV</option><option value="saude">Saúde · RAD, ENF, EIC e FLB</option></select></label>
                 <label class="full-row">Nome completo *<input id="instructorName" required maxlength="180" autocomplete="name"></label>
                 <label>MEI / CPF *<input id="instructorDocument" maxlength="24" required></label>
                 <label>Telefone ou e-mail<input id="instructorContact" maxlength="180"></label>
@@ -103,11 +103,11 @@
                 <div class="instructor-preview full-row" id="instructorPreview"></div>
                 <label class="full-row">Disciplina *<input id="contractDiscipline" required maxlength="120"></label>
                 <label>Modalidade *<select id="contractType"><option value="theory">Teórica</option><option value="practice">Prática</option><option value="both">Teórica e prática</option></select></label>
-                <label>Quantidade de aulas *<input id="contractLessons" type="number" min="1" step="1" required></label>
+                <label>Quantidade de aulas<input id="contractLessons" type="number" min="1" step="1"></label>
                 <label>Carga horária *<input id="contractHours" required inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="Ex.: 52"></label>
                 <label>Valor hora-aula (R$) *<input id="contractHourRate" required inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?" placeholder="Ex.: 14,70"></label>
                 <label>Curso *<select id="contractCourse" required></select></label>
-                <label>Turma *<input id="contractGroup" required pattern="[0-9]+" inputmode="numeric" maxlength="20" placeholder="Ex.: 24"></label>
+                <label>Turma *<input id="contractGroup" required maxlength="80" placeholder="Ex.: 24 ou 20/23"></label>
                 <label>Turno<select id="contractShift"><option value="">Sem sufixo</option><option value="M">Manhã (M)</option><option value="T">Tarde (T)</option><option value="N">Noite (N)</option><option value="I">Integral (I)</option></select></label>
                 <label>Data início *<input type="date" id="contractStart" required></label>
                 <label>Data fim *<input type="date" id="contractEnd" required></label>

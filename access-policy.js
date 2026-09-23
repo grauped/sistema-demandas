@@ -13,6 +13,7 @@
     const departments = ['exatas', 'saude'];
     const clone = data => JSON.parse(JSON.stringify(data));
     function courseDepartment(course) {
+        if (course === 'GERAL') return 'unassigned';
         if (roles.exatas.courses.includes(course)) return 'exatas';
         if (roles.saude.courses.includes(course)) return 'saude';
         throw new Error('Curso inválido.');
