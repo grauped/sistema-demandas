@@ -145,3 +145,35 @@ test('login sem socket autentica e mantém limite de tentativas',async()=>{
     for(let i=0;i<5;i++)assert.equal((await login(null,'senha-incorreta')).status,401);
     assert.equal((await login(null,'senha-incorreta')).status,429);
 });
+
+test('gestora edita Pix do instrutor e escolhe os contratos atualizados',async t=>{
+    const directory=fs.mkdtempSync(path.join(__dirname,'tmp','access-test-'));
+    const {server}=createServer({directory});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
+    const base='http://127.0.0.1:'+server.address().port;
+    async function call(route,method='GET',data,session){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(session?{Cookie:session.cookie,'X-CSRF-Token':session.csrf}:{})},...(data===undefined?{}:{body:JSON.stringify(data)})});return {status:r.status,data:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]};}
+    await call('/api/setup','POST',passwords);
+    const manager=await call('/api/login','POST',{username:ACCOUNTS.gestora,password:passwords.gestora});const m={cookie:manager.cookie,csrf:manager.data.csrf};
+    const exLogin=await call('/api/login','POST',{username:ACCOUNTS.exatas,password:passwords.exatas});const e={cookie:exLogin.cookie,csrf:exLogin.data.csrf};
+    const person=instructor('pix-person','exatas'),other=instructor('other-person','exatas');
+    let state=(await call('/api/contracts','GET',undefined,m)).data;
+    let result=await call('/api/contracts','PUT',{revision:state.revision,data:{...C.empty(),instructors:[person,other],contracts:[contract('a',person,'ADM'),contract('b',person,'ADM'),{...contract('cancelled',person,'ADM'),cancelled:true},contract('other',other,'ADM')]}},m);
+    assert.equal(result.status,200);
+    result=await call('/api/contracts/approval/batch','POST',{ids:['a','b','other'],revision:result.data.revision},m);assert.equal(result.status,200);state=result.data;
+    const request={id:'a',pix:'gestora@example.com',pixType:'email',allContracts:false,revision:state.revision};
+    assert.equal((await call('/api/contracts/pix','POST',request,e)).status,403);
+    assert.equal((await call('/api/contracts/pix','POST',{...request,revision:state.revision-1},m)).status,409);
+    assert.equal((await call('/api/contracts/pix','POST',{...request,pix:'invalido'},m)).status,400);
+    assert.equal((await call('/api/contracts/pix','POST',{...request,id:'missing'},m)).status,404);
+    assert.equal((await call('/api/contracts/pix','POST',{...request,id:'cancelled'},m)).status,409);
+    assert.equal((await call('/api/contracts','GET',undefined,m)).data.revision,state.revision);
+    result=await call('/api/contracts/pix','POST',request,m);assert.equal(result.status,200);assert.equal(result.data.updatedCount,1);
+    const byId=id=>result.data.data.contracts.find(c=>c.id===id);
+    assert.equal(result.data.data.instructors.find(i=>i.id===person.id).pix,request.pix);
+    assert.equal(byId('a').instructorSnapshot.pix,request.pix);assert.equal(byId('a').approvalStatus,'pending');
+    assert.equal(byId('b').instructorSnapshot.pix,person.pix);assert.equal(byId('b').approvalStatus,'approved');
+    result=await call('/api/contracts/pix','POST',{...request,pix:'nova@example.com',allContracts:true,revision:result.data.revision},m);
+    assert.equal(result.status,200);assert.equal(result.data.updatedCount,2);
+    assert.equal(byId('a').instructorSnapshot.pix,'nova@example.com');assert.equal(byId('b').instructorSnapshot.pix,'nova@example.com');assert.equal(byId('b').approvalStatus,'pending');
+    assert.equal(byId('cancelled').instructorSnapshot.pix,person.pix);assert.equal(byId('other').instructorSnapshot.pix,other.pix);assert.equal(byId('other').approvalStatus,'approved');
+});

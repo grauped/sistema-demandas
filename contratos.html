@@ -127,6 +127,20 @@
             <div class="modal-actions"><button type="button" class="btn-secondary" data-close="contractDialog">Cancelar</button><button class="btn-primary" type="submit">Salvar registro</button></div>
         </form>
     </dialog>
+    <dialog id="pixDialog" class="module-dialog" aria-labelledby="pixTitle">
+        <form id="pixForm">
+            <div class="section-header"><h2 id="pixTitle">Chave Pix do instrutor</h2><button type="button" class="icon-button" data-close="pixDialog" aria-label="Fechar">×</button></div>
+            <p id="pixInstructorName"></p><input type="hidden" id="pixContractId">
+            <div class="module-fields">
+                <label>Tipo de chave<select id="contractPixType"><option value="">Não especificado</option><option value="email">E-mail</option><option value="cpf">CPF / CNPJ</option><option value="phone">Telefone</option><option value="random">Aleatória</option></select></label>
+                <label>Chave Pix *<input id="contractPixValue" maxlength="120" required></label>
+            </div>
+            <label class="inline-check"><input type="checkbox" id="pixAllContracts"> Atualizar também os demais contratos ativos deste cadastro de instrutor</label>
+            <p class="help">A chave será salva no cadastro do instrutor para novos contratos e neste contrato. Contratos alterados precisarão de nova aprovação.</p>
+            <p id="pixError" class="form-error" role="alert"></p>
+            <div class="modal-actions"><button type="button" class="btn-secondary" data-close="pixDialog">Cancelar</button><button type="submit" class="btn-primary" id="saveContractPix">Salvar chave Pix</button></div>
+        </form>
+    </dialog>
     <dialog id="pdfDialog" class="module-dialog pdf-dialog" aria-labelledby="pdfTitle">
         <div class="section-header"><h2 id="pdfTitle">Solicitação de contrato</h2><button class="btn-secondary" data-close="pdfDialog">Fechar</button></div>
         <p id="pdfPreviewStatus" role="status">Carregando prévia…</p>

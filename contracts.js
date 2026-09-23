@@ -155,13 +155,35 @@
         $('contractList').innerHTML = rows.length ? rows.map(item => `
             <article class="record-card"><div>${role === 'gestora' && !item.cancelled && item.approvalStatus !== 'approved' ? `<label class="contract-select"><input type="checkbox" data-select-contract="${escape(item.id)}" aria-label="Selecionar ${escape(item.number)}" ${selectedContracts.has(item.id) ? 'checked' : ''} ${saving ? 'disabled' : ''}> Selecionar</label>` : ''}<h4>${escape(item.discipline)} · ${escape(C.groupLabel(item))}</h4><p>${escape(item.instructorSnapshot.name)}</p>
             <p>${escape(item.number)} · ${dateBR(item.startDate)} a ${dateBR(item.endDate)} · ${item.hoursUnits / 100} h</p>
-            <p>Orçamento: ${dateBR(item.referenceDate)}</p><span class="record-status ${item.cancelled ? 'inactive' : item.approvalStatus === 'approved' ? '' : 'pending'}">${item.cancelled ? 'Cancelado · fora do orçamento' : item.approvalStatus === 'approved' ? `Aprovado pela gestora${item.approvedAt ? ' em ' + dateBR(item.approvedAt.slice(0,10)) : ''}` : 'Pendente de aprovação'}</span></div>
+            <p>Chave Pix: ${escape(item.instructorSnapshot.pix || 'Não informada')}</p><p>Orçamento: ${dateBR(item.referenceDate)}</p><span class="record-status ${item.cancelled ? 'inactive' : item.approvalStatus === 'approved' ? '' : 'pending'}">${item.cancelled ? 'Cancelado · fora do orçamento' : item.approvalStatus === 'approved' ? `Aprovado pela gestora${item.approvedAt ? ' em ' + dateBR(item.approvedAt.slice(0,10)) : ''}` : 'Pendente de aprovação'}</span></div>
             <div class="record-actions">${role === 'gestora' && !item.cancelled ? `<button class="btn-primary" data-contract="approve" data-id="${escape(item.id)}">${item.approvalStatus === 'approved' ? 'Retirar aprovação' : 'Aprovar contrato'}</button>` : ''}<strong class="record-total">${money(item.amountCents)}</strong>
-            <button class="btn-secondary" data-contract="pdf" data-id="${escape(item.id)}">Ver PDF</button>
+            ${role === 'gestora' && !item.cancelled ? `<button class="btn-secondary" data-contract="pix" data-id="${escape(item.id)}">Editar Pix</button>` : ''}<button class="btn-secondary" data-contract="pdf" data-id="${escape(item.id)}">Ver PDF</button>
             ${!item.cancelled ? `<button class="text-button" data-contract="edit" data-id="${escape(item.id)}">Editar</button>` : ''}
             <button class="text-button" data-contract="copy" data-id="${escape(item.id)}">Reutilizar</button>
             <button class="text-button" data-contract="toggle" data-id="${escape(item.id)}">${item.cancelled ? 'Reativar' : 'Cancelar registro'}</button></div></article>`).join('') :
             '<div class="empty-state"><strong>Nenhum contrato encontrado.</strong><span>Selecione um instrutor e preencha os dados pedagógicos.</span></div>';
+    }
+
+    function openContractPix(item) {
+        if(role !== 'gestora' || item.cancelled || saving)return;
+        const instructor=data.instructors.find(person=>person.id===item.instructorId);
+        $('pixForm').reset();$('pixError').textContent='';
+        $('pixContractId').value=item.id;
+        $('pixInstructorName').textContent=item.instructorSnapshot.name+' · '+item.number;
+        const source=item.instructorSnapshot.pix ? item.instructorSnapshot : instructor;
+        $('contractPixValue').value=source?.pix || '';
+        $('contractPixType').value=source?.pixType || '';
+        $('pixDialog').showModal();$('contractPixValue').focus();
+    }
+    async function saveContractPix(event) {
+        event.preventDefault();if(saving || !readable || role !== 'gestora')return;
+        saving=true;$('saveContractPix').disabled=true;
+        try{
+            const result=await Auth.api('/api/contracts/pix',{method:'POST',data:{id:$('pixContractId').value,pix:$('contractPixValue').value.trim(),pixType:$('contractPixType').value,allContracts:$('pixAllContracts').checked,revision}});
+            data=result.data;revision=result.revision;render();$('pixDialog').close();
+            notify(`Chave Pix salva no instrutor e em ${result.updatedCount} contrato(s). Confira a aprovação dos contratos alterados.`);
+        }catch(error){$('pixError').textContent=error.message;}
+        finally{saving=false;$('saveContractPix').disabled=false;renderContracts();}
     }
 
     function updateBulkApproval() {
@@ -336,6 +358,7 @@
         if(await commit(next)) notify('Solicitante padrão salvo.');
     });
     $('contractForm').addEventListener('submit',saveContract);
+    $('pixForm').addEventListener('submit',saveContractPix);
     $('instructorSearch').addEventListener('input',renderInstructors);
     $('includeInactive').addEventListener('change',renderInstructors);
     $('contractSearch').addEventListener('input',renderContracts);
@@ -377,7 +400,8 @@
     $('contractList').addEventListener('click',async event=>{
         const button=event.target.closest('[data-contract]'); if(!button)return;
         const item=data.contracts.find(item=>item.id===button.dataset.id); if(!item)return;
-        if(button.dataset.contract==='pdf') showPDF(item);
+        if(button.dataset.contract==='pix')openContractPix(item);
+        else if(button.dataset.contract==='pdf') showPDF(item);
         else if(button.dataset.contract==='approve') {
             if(saving)return;saving=true;
             try{const result=await Auth.api('/api/contracts/approval',{method:'POST',data:{id:item.id,status:item.approvalStatus==='approved'?'pending':'approved',revision}});data=result.data;revision=result.revision;render();notify(item.approvalStatus==='approved'?'Aprovação retirada. Contrato fora do orçamento.':'Contrato aprovado e incluído no orçamento do período de término.');}catch(error){notify(error.message);}finally{saving=false;renderContracts();}
