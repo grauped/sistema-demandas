@@ -1,7 +1,7 @@
 (function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./contracts-core.js'):root.ContractsCore);if(typeof module==='object'&&module.exports)module.exports=api;else root.CostReport=api;})(typeof globalThis!=='undefined'?globalThis:this,function(C){
 'use strict';
 const headers=['CURSO','TURMA','DISCIPLINA','INSTRUTOR','TIPO','DATA INICIAL','DATA FINAL','VALOR DA HORA/AULA','HORAS TOTAIS','VALOR (INSTRUTOR)'];
-const names={ADM:'Técnico em Administração',STB:'Técnico em Segurança no Trabalho',ELT:'Técnico em Eletrotécnica',DSI:'Técnico em Desenvolvimento de Sistemas',ELP:'Técnico em Eletroeletrônica',BCV:'Bombeiro Civil',ENF:'Técnico em Enfermagem',RAD:'Técnico em Radiologia',EIC:'Técnico em Estética',FLB:'Técnico em Farmácia'};
+const names={ADM:'Técnico em Administração',STB:'Técnico em Segurança no Trabalho',ELT:'Técnico em Eletrotécnica',DSI:'Técnico em Desenvolvimento de Sistemas',ELP:'Eletricista predial',BCV:'Bombeiro Civil',ENF:'Técnico em Enfermagem',RAD:'Técnico em Radiologia',EIC:'Especialização Técnica em Instrumentação Cirúrgica',FLB:'Balconista de Farmácia'};
 function values(item){return [names[item.course]||item.course,C.groupLabel(item),item.discipline,item.instructorSnapshot?.name||'Não informado',({theory:'Teórica',practice:'Prática',both:'Teórica e prática'})[item.type]||'Não informado',item.startDate,item.endDate,item.hourRateCents/100,item.hoursUnits/100,item.amountCents/100];}
 const xml=value=>String(value??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const utf8=new TextEncoder();

@@ -221,7 +221,7 @@
             $('contractHourRate').value = (item.hourRateCents / 100).toFixed(2).replace('.',',');
             if (copy) { $('contractRequestDate').value = today(); $('contractRequester').value = data.settings.requester || item.requester; }
         }
-        updateReference(); updateTotal(); previewInstructor();
+        updateReference(); updateLessonHours(false); previewInstructor();
         $('contractDialog').showModal();
         (chosen ? $('contractDiscipline') : $('contractInstructor')).focus();
     }
@@ -242,6 +242,25 @@
 
     function updateReference() {
         $('contractReference').value = $('contractEnd').value;
+    }
+    function updateLessonHours(recalculate = true) {
+        const rate = C.hoursPerLesson[$('contractCourse').value];
+        const count = $('contractLessons').value;
+        $('contractLessons').disabled = !rate;
+        $('contractHours').readOnly = Boolean(rate && count);
+        $('lessonHoursHelp').textContent = rate ? `Cada dia de aula deste curso corresponde a ${rate} horas. Informe os dias para calcular automaticamente.` : 'Informe a carga horária manualmente para lançamentos gerais.';
+        if (rate && count) {
+            try {
+                const units = C.lessonHours($('contractCourse').value, Number(count));
+                if (recalculate) $('contractHours').value = String(units / 100);
+                $('lessonHoursHelp').textContent = `${count} dias × ${rate} horas = ${units / 100} horas.`;
+                if (!recalculate && C.cents($('contractHours').value) !== units) $('lessonHoursHelp').textContent += ' Carga horária anterior preservada; altere os dias ou o curso para recalcular.';
+            } catch (error) {
+                if (recalculate) $('contractHours').value = '';
+                $('lessonHoursHelp').textContent = error.message;
+            }
+        } else if (recalculate && rate) $('contractHours').value = '';
+        updateTotal();
     }
     function updateTotal() {
         try { $('contractCalculated').textContent = money(C.total(C.cents($('contractHours').value), C.cents($('contractHourRate').value))); }
@@ -264,7 +283,7 @@
             const sequence = Math.max(0,...data.contracts.filter(item => item.number.startsWith(prefix)).map(item=>Number(item.number.slice(prefix.length)))) + 1;
             const record = { id: old?.id || uid(), number: old?.number || prefix + String(sequence).padStart(4,'0'),
                 instructorId: instructor.id, instructorSnapshot: clone(old?.instructorId === instructor.id ? old.instructorSnapshot : instructor),
-                lessonCount: $('contractLessons').value ? Number($('contractLessons').value) : null, hoursUnits, hourRateCents, amountCents: C.total(hoursUnits,hourRateCents), cancelled: old?.cancelled || false };
+                lessonCount: !$('contractLessons').disabled && $('contractLessons').value ? Number($('contractLessons').value) : null, hoursUnits, hourRateCents, amountCents: C.total(hoursUnits,hourRateCents), cancelled: old?.cancelled || false };
             const fields = { discipline: 'Discipline', type: 'Type', course: 'Course', group: 'Group', shift: 'Shift', startDate: 'Start', endDate: 'End', requester: 'Requester', requestDate: 'RequestDate', referenceDate: 'Reference', notes: 'Notes' };
             for (const [key,suffix] of Object.entries(fields)) record[key] = $('contract'+suffix).value.trim();
             record.is2D = $('contractIs2D').checked;
@@ -412,7 +431,9 @@
         else if(button.dataset.contract==='copy') openContract({id:item.id,copy:true});
         else { const next=clone(data); next.contracts.find(record=>record.id===item.id).cancelled=!item.cancelled; if(await commit(next))notify(item.cancelled?'Registro reativado. Aguarda aprovação para entrar no orçamento.':'Registro cancelado e retirado do orçamento. Você pode reativá-lo em Mostrar cancelados.'); }
     });
-    $('contractInstructor').addEventListener('change',()=>{updateCourses();previewInstructor();});
+    $('contractInstructor').addEventListener('change',()=>{updateCourses();updateLessonHours();previewInstructor();});
+    $('contractCourse').addEventListener('change',()=>updateLessonHours());
+    $('contractLessons').addEventListener('input',()=>updateLessonHours());
     $('departmentFilter').addEventListener('change',()=>{
         const department=$('departmentFilter').value;
         const codes=P.roles[department]?.courses || allowedCourses;

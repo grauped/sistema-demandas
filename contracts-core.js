@@ -5,6 +5,14 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     'use strict';
     const courses = ['ADM', 'STB', 'ELT', 'DSI', 'ELP', 'BCV', 'ENF', 'RAD', 'EIC', 'FLB', 'GERAL'];
+    const hoursPerLesson = Object.freeze({ ADM: 4, ELT: 4, STB: 4, DSI: 4, ELP: 3, BCV: 3, ENF: 4, RAD: 4, EIC: 4, FLB: 3 });
+    function lessonHours(course, days) {
+        if (!hoursPerLesson[course]) throw new Error('Curso sem carga horária por aula definida.');
+        if (!Number.isSafeInteger(days) || days <= 0) throw new Error('Informe a quantidade de dias de aula.');
+        const units = days * hoursPerLesson[course] * 100;
+        if (!Number.isSafeInteger(units)) throw new Error('Carga horária excede o limite suportado.');
+        return units;
+    }
     const empty = () => ({ version: 1, instructors: [], contracts: [], settings: { requester: '', budgetBasis: 'endDate' } });
     function validDate(value) {
         if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -101,5 +109,5 @@
         };
         return '\uFEFF' + rows.map(row => row.map(cell).join(';')).join('\r\n');
     }
-    return { courses, empty, validDate, cycle, currentCycle, cents, total, groupLabel, validateStore, validateContract, report, csv };
+    return { courses, hoursPerLesson, lessonHours, empty, validDate, cycle, currentCycle, cents, total, groupLabel, validateStore, validateContract, report, csv };
 });

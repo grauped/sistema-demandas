@@ -110,3 +110,31 @@ test('turma 2D usa sufixo após turno e alteração exige nova aprovação', () 
     A.enforce({contracts:[contract]},next);
     assert.equal(next.contracts[0].approvalStatus,'pending');
 });
+
+test('dias de aula usam tabela de 3 ou 4 horas e calculam valor total', () => {
+    for(const course of ['ADM','ELT','STB','DSI','ENF','RAD','EIC']) assert.equal(C.lessonHours(course,10),4000);
+    for(const course of ['ELP','BCV','FLB']) assert.equal(C.lessonHours(course,10),3000);
+    assert.equal(C.total(C.lessonHours('ADM',10),1470),58800);
+    assert.equal(C.total(C.lessonHours('ELP',10),1470),44100);
+    for(const days of [0,-1,1.5,NaN,Infinity]) assert.throws(()=>C.lessonHours('ADM',days));
+    assert.throws(()=>C.lessonHours('GERAL',10));
+});
+
+test('formulário recalcula dias e curso e preserva carga antiga ao abrir', () => {
+    const vm = require('node:vm');
+    const source = fs.readFileSync('contracts.js','utf8');
+    const fn = source.slice(source.indexOf('    function updateLessonHours('),source.indexOf('    function updateTotal()'));
+    const elements = Object.fromEntries(['contractCourse','contractLessons','contractHours','lessonHoursHelp'].map(id=>[id,{value:'',textContent:''}]));
+    const context = {C, $:id=>elements[id], updateTotal:()=>{}};
+    vm.createContext(context);vm.runInContext(fn,context);
+    elements.contractCourse.value='ADM';elements.contractLessons.value='10';elements.contractHours.value='32';
+    context.updateLessonHours(false);
+    assert.equal(elements.contractHours.value,'32');
+    context.updateLessonHours();assert.equal(elements.contractHours.value,'40');
+    assert.equal(elements.contractHours.readOnly,true);
+    elements.contractCourse.value='ELP';context.updateLessonHours();assert.equal(elements.contractHours.value,'30');
+    elements.contractLessons.value='';context.updateLessonHours();assert.equal(elements.contractHours.value,'');
+    assert.equal(elements.contractHours.readOnly,false);
+    elements.contractCourse.value='GERAL';elements.contractHours.value='12';context.updateLessonHours();
+    assert.equal(elements.contractHours.value,'12');assert.equal(elements.contractLessons.disabled,true);
+});
