@@ -215,6 +215,7 @@
         const fields = { discipline: 'Discipline', type: 'Type', course: 'Course', group: 'Group', shift: 'Shift', startDate: 'Start', endDate: 'End', requester: 'Requester', requestDate: 'RequestDate', referenceDate: 'Reference', notes: 'Notes' };
         if (item) {
             for (const [key,suffix] of Object.entries(fields)) $('contract'+suffix).value = item[key];
+            $('contractIs2D').checked = item.is2D === true;
             $('contractLessons').value = item.lessonCount ?? '';
             $('contractHours').value = String(item.hoursUnits / 100).replace('.',',');
             $('contractHourRate').value = (item.hourRateCents / 100).toFixed(2).replace('.',',');
@@ -266,6 +267,7 @@
                 lessonCount: $('contractLessons').value ? Number($('contractLessons').value) : null, hoursUnits, hourRateCents, amountCents: C.total(hoursUnits,hourRateCents), cancelled: old?.cancelled || false };
             const fields = { discipline: 'Discipline', type: 'Type', course: 'Course', group: 'Group', shift: 'Shift', startDate: 'Start', endDate: 'End', requester: 'Requester', requestDate: 'RequestDate', referenceDate: 'Reference', notes: 'Notes' };
             for (const [key,suffix] of Object.entries(fields)) record[key] = $('contract'+suffix).value.trim();
+            record.is2D = $('contractIs2D').checked;
             record.referenceDate = record.endDate;
             record.department = P.courseDepartment(record.course);
             if (record.startDate > record.endDate) throw new Error('A data fim não pode ser anterior à data início.');

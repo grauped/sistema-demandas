@@ -93,3 +93,20 @@ test('turmas agrupadas e gerais preservam identificação e valor sem multiplica
         }
     }
 });
+
+test('turma 2D usa sufixo após turno e alteração exige nova aprovação', () => {
+    const A = require('./approval.cjs');
+    const R = require('./cost-report.js');
+    assert.equal(C.groupLabel(contract), 'ADM10-M');
+    const changed = {...structuredClone(contract), group:'13', is2D:true};
+    assert.equal(C.groupLabel(changed), 'ADM13-M-2D');
+    assert.equal(R.values(changed)[1], 'ADM13-M-2D');
+    C.validateContract(changed);
+    assert.throws(()=>C.validateContract({...changed,is2D:'true'}));
+    const next={contracts:[{...structuredClone(contract),is2D:false}]};
+    A.enforce({contracts:[contract]},next);
+    assert.equal(next.contracts[0].approvalStatus,'approved');
+    next.contracts[0].is2D=true;
+    A.enforce({contracts:[contract]},next);
+    assert.equal(next.contracts[0].approvalStatus,'pending');
+});

@@ -1,7 +1,7 @@
 (function(root, factory) {
-    if (typeof module === 'object' && module.exports) module.exports = factory(require('./assets/vendor/pdf-lib.min.js'), require('./assets/contract-template.js'));
-    else root.ContractPDF = factory(root.PDFLib, root.ContractTemplate);
-})(typeof globalThis !== 'undefined' ? globalThis : this, function(PDFLib, template) {
+    if (typeof module === 'object' && module.exports) module.exports = factory(require('./assets/vendor/pdf-lib.min.js'), require('./assets/contract-template.js'), require('./contracts-core.js'));
+    else root.ContractPDF = factory(root.PDFLib, root.ContractTemplate, root.ContractsCore);
+})(typeof globalThis !== 'undefined' ? globalThis : this, function(PDFLib, template, C) {
     const dateBR = value => value.split('-').reverse().join('/');
     const decimal = units => (units / 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
     async function generate(record) {
@@ -9,7 +9,7 @@
         const font = await pdf.embedFont(PDFLib.StandardFonts.Helvetica);
         const page = pdf.getPages()[0];
         const instructor = record.instructorSnapshot;
-        const group = (record.course === 'GERAL' ? '' : record.course) + record.group + (record.shift ? '-' + record.shift : '');
+        const group = C.groupLabel(record);
         const values = {
             discipline: record.discipline, theory: ['theory','both'].includes(record.type) ? 'X' : '',
             practice: ['practice','both'].includes(record.type) ? 'X' : '',

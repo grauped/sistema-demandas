@@ -54,6 +54,7 @@
             !Number.isSafeInteger(contract.amountCents) || contract.amountCents !== total(contract.hoursUnits, contract.hourRateCents) ||
             contract.amountCents < 0 || typeof contract.cancelled !== 'boolean' ||
             typeof contract.notes !== 'string') throw new Error('Registro de contrato inválido.');
+        if (contract.is2D !== undefined && typeof contract.is2D !== 'boolean') throw new Error('Opção de turma 2D inválida.');
         if (contract.lessonCount != null && (!Number.isSafeInteger(contract.lessonCount) || contract.lessonCount <= 0)) throw new Error('Quantidade de aulas inválida.');
         if (contract.approvalStatus !== undefined && !['pending','approved'].includes(contract.approvalStatus)) throw new Error('Situação de aprovação inválida.');
         validateInstructor(contract.instructorSnapshot);
@@ -79,7 +80,7 @@
         return Math.round(product / 100);
     }
     function groupLabel(contract) {
-        return (contract.course === 'GERAL' ? '' : contract.course) + contract.group + (contract.shift ? '-' + contract.shift : '');
+        return (contract.course === 'GERAL' ? '' : contract.course) + contract.group + (contract.shift ? '-' + contract.shift : '') + (contract.is2D ? '-2D' : '');
     }
     function report(contracts, { start, end, course = '', group = '' }) {
         if (!validDate(start) || !validDate(end) || start > end) throw new Error('Informe um período válido: a data final deve ser igual ou posterior à inicial.');
