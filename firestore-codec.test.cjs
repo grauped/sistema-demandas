@@ -1,0 +1,4 @@
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {pack,unpack}=require('./firestore-codec.cjs');
+test('Firestore preserves legacy data and backups',()=>{const x={instructors:[],contracts:[],text:'João'};assert.deepEqual(pack(x),{data:x});assert.deepEqual(unpack({data:x}),x);assert.deepEqual(unpack(pack(x,'value'),'value'),x);});
+test('Firestore compresses large histories without changing fields',()=>{const x={contracts:Array.from({length:1800},(_,i)=>({id:String(i),name:'Instrutor de teste',notes:'Contrato com descrição e acentos. '.repeat(30),approvalStatus:'pending'}))};for(const f of ['data','value']){const encoded=pack(x,f);assert.ok(encoded[f+'Gzip']);assert.ok(Buffer.byteLength(JSON.stringify(encoded))<900000);assert.deepEqual(unpack(encoded,f),x);}assert.throws(()=>unpack({dataGzip:'invalid'}));});

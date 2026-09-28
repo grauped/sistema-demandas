@@ -1,3 +1,4 @@
+const { pack, unpack } = require('./firestore-codec.cjs');
 const { ACCOUNTS } = require('./database.cjs');
 const C = require('./contracts-core.js');
 const P = require('./access-policy.js');
@@ -17,7 +18,7 @@ function createFirestoreStore() {
     const parseState = snapshot => {
         if (!snapshot.exists) throw firestoreError('O estado do sistema não foi inicializado.');
         const value = snapshot.data();
-        return { data: value.data, revision: value.revision };
+        return { data: unpack(value), revision: value.revision };
     };
     async function ready() {
         await db.runTransaction(async transaction => {
@@ -43,11 +44,11 @@ function createFirestoreStore() {
             async write(name, data) {
                 const current = await this.read(name);
                 const revision = current.revision + 1;
-                transaction.set(ref('state', name), { data, revision });
+                transaction.set(ref('state', name), { ...pack(data), revision });
                 stateCache.set(name, { data, revision });
                 return revision;
             },
-            async addBackup(role, value) { transaction.create(db.collection('backups').doc(), { role, created: new Date().toISOString(), value }); },
+            async addBackup(role, value) { transaction.create(db.collection('backups').doc(), { role, created: new Date().toISOString(), ...pack(value, 'value') }); },
             async hasMigration(name) { return (await transaction.get(ref('migrations', name))).exists; },
             async addMigration(name) { transaction.create(ref('migrations', name), { created: new Date().toISOString() }); },
             async updateUser(username, values) { transaction.update(ref('users', username), values); },
@@ -84,7 +85,7 @@ function createFirestoreStore() {
             const batch = db.batch(); records.docs.forEach(item => batch.delete(item.ref)); await batch.commit();
         },
         async read(name) { return parseState(await ref('state', name).get()); },
-        async getBackup(role) { const records = await db.collection('backups').where('role', '==', role).orderBy('created', 'desc').limit(1).get(); return records.empty ? null : records.docs[0].data().value; },
+        async getBackup(role) { const records = await db.collection('backups').where('role', '==', role).orderBy('created', 'desc').limit(1).get(); return records.empty ? null : unpack(records.docs[0].data(), 'value'); },
         async importLocalDatabase(localDb) {
             const users = localDb.prepare('SELECT username,role,salt,digest FROM users').all();
             const states = localDb.prepare('SELECT name,value,revision FROM state').all().map(item => ({ ...item, data: JSON.parse(item.value) }));
@@ -92,12 +93,12 @@ function createFirestoreStore() {
             const migrations = localDb.prepare('SELECT name,created FROM migrations').all();
             await db.runTransaction(async transaction => {
                 const cloudStates = await Promise.all(states.map(item => transaction.get(ref('state', item.name))));
-                const hasRecords = cloudStates.some(item => item.exists && ((item.data().revision || 0) > 0 || (Array.isArray(item.data().data) ? item.data().data.length : item.data().data.contracts.length || item.data().data.instructors.length)));
+                const hasRecords = cloudStates.some(item => item.exists && ((item.data().revision || 0) > 0 || (Array.isArray(unpack(item.data())) ? unpack(item.data()).length : unpack(item.data()).contracts.length || unpack(item.data()).instructors.length)));
                 const cloudUsers = await Promise.all(users.map(item => transaction.get(ref('users', item.username))));
                 if (hasRecords || cloudUsers.some(item => item.exists && item.data().digest)) throw firestoreError('O Firestore já contém dados ou senhas. A migração foi cancelada para evitar sobreposição.');
                 users.forEach(item => transaction.set(ref('users', item.username), item));
-                states.forEach(item => transaction.set(ref('state', item.name), { data: item.data, revision: item.revision }));
-                backups.forEach(item => transaction.create(db.collection('backups').doc(), item));
+                states.forEach(item => transaction.set(ref('state', item.name), { ...pack(item.data), revision: item.revision }));
+                backups.forEach(item => transaction.create(db.collection('backups').doc(), {role:item.role,created:item.created,...pack(item.value,'value')}));
                 migrations.forEach(item => transaction.set(ref('migrations', item.name), item));
             });
         },        async transaction(work) { return db.runTransaction(async transaction => work(transactionContext(transaction))); },
