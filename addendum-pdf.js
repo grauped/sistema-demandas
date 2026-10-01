@@ -1,5 +1,5 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./assets/vendor/pdf-lib.min.js'),require('./assets/addendum-template.js'),require('./contracts-core.js'));else root.AddendumPDF=factory(root.PDFLib,root.AddendumTemplate,root.ContractsCore);})(globalThis,function(PDFLib,template,C){
- const names={ADM:'Técnico em Administração',ELT:'Técnico em Eletrotécnica',STB:'Técnico em Segurança no Trabalho',DSI:'Técnico em Desenvolvimento de Sistemas',ELP:'Eletricista predial',BCV:'Bombeiro Civil',ENF:'Técnico em Enfermagem',RAD:'Técnico em Radiologia',EIC:'Especialização Técnica em Instrumentação Cirúrgica',FLB:'Balconista de Farmácia',GERAL:'Geral'};
+ const names={ADM:'Técnico em Administração',ELT:'Técnico em Eletrotécnica',STB:'Técnico em Segurança no Trabalho',DSI:'Técnico em Desenvolvimento de Sistemas',ELP:'Eletricista predial',BCV:'Bombeiro Civil',ENF:'Técnico em Enfermagem',RAD:'Técnico em Radiologia',EIC:'Especialização Técnica em Instrumentação Cirúrgica',FLB:'Coleta de sangue',GERAL:'Geral'};
  const br=d=>d.split('-').reverse().join('/'),hours=n=>(n/100).toLocaleString('pt-BR');
  async function generate(record){
   const a=record.substitution;if(!a)throw new Error('Este contrato não possui adendo.');
@@ -13,7 +13,7 @@
   const title='ADENDO AO CONTRATO DE PRESTAÇÃO DE SERVIÇOS';draw(title,(page.getWidth()-bold.widthOfTextAtSize(title,11))/2,729,11,bold);
   const date=new Date(a.signDate+'T12:00:00Z').toLocaleDateString('pt-BR',{day:'numeric',month:'long',year:'numeric',timeZone:'UTC'});
   draw(a.city+', '+date,85,682);
-  const paragraphs=[`Venho por meio deste informar que o contrato ${original.number}, referente ao curso ${names[original.course]}, ${C.groupLabel(original)}, da disciplina ${original.discipline}, tendo como instrutor(a) ${old.name}, portador(a) do CPF/CNPJ ${old.document}, carga horária prevista de ${hours(original.hoursUnits)} horas/aula, com início em ${br(original.startDate)} e término em ${br(original.endDate)}, não será concluído pelo próprio. Motivo da substituição: ${a.reason}. ${a.fulfilledHoursUnits ? `A carga horária cumprida será de ${hours(a.fulfilledHoursUnits)} horas/aula, iniciando no dia ${br(original.startDate)} e comparecendo pela última vez no dia ${br(a.lastDate)}.` : 'O instrutor original não cumpriu carga horária nesta disciplina.'}`, `A partir do dia ${br(record.startDate)} até ${br(record.endDate)}, término da disciplina, as aulas serão ministradas pelo instrutor(a) ${person.name}, portador(a) do CPF/CNPJ ${person.document}, totalizando uma carga horária de ${hours(record.hoursUnits)} horas/aula.`];
+  const paragraphs=[`Venho por meio deste informar que o contrato referente ao curso ${names[original.course]}, ${C.groupLabel(original)}, da disciplina ${original.discipline}, tendo como instrutor(a) ${old.name}, portador(a) do CPF/CNPJ ${old.document}, carga horária prevista de ${hours(original.hoursUnits)} horas/aula, com início em ${br(original.startDate)} e término em ${br(original.endDate)}, não será concluído pelo próprio. Motivo da substituição: ${a.reason}. ${a.fulfilledHoursUnits ? `A carga horária cumprida será de ${hours(a.fulfilledHoursUnits)} horas/aula, iniciando no dia ${br(original.startDate)} e comparecendo pela última vez no dia ${br(a.lastDate)}.` : 'O instrutor original não cumpriu carga horária nesta disciplina.'}`, `A partir do dia ${br(record.startDate)} até ${br(record.endDate)}, término da disciplina, as aulas serão ministradas pelo instrutor(a) ${person.name}, portador(a) do CPF/CNPJ ${person.document}, totalizando uma carga horária de ${hours(record.hoursUnits)} horas/aula.`];
   const lines=paragraphs.map(p=>wrap(p));const lineCount=lines.reduce((n,l)=>n+l.length,0);
   if(lineCount>26)throw new Error('O texto excede uma página do modelo. Reduza o motivo ou abrevie os campos longos.');
   let y=620;for(const paragraph of lines){for(const line of paragraph){draw(line,85,y);y-=17;}y-=12;}
@@ -22,7 +22,7 @@
   const label=original.department==='exatas'?'Coordenação de Exatas':original.department==='saude'?'Coordenação de Saúde':'Gestora';draw(label,315-font.widthOfTextAtSize(label,10)/2,y-12,10);
   draw('Avenida Presidente Dutra, 890 – Ilha de Santa Luzia – Mossoró/RN',186,43,7);
   draw('CEP 59625-000 – Fone: (84) 2142-1039 – www.grautecnico.com.br',186,33,7);
-  pdf.setTitle('Adendo de substituição - '+original.number);pdf.setAuthor('Minhas Demandas');return pdf.save();
+  pdf.setTitle('Adendo de substituição');pdf.setAuthor('Minhas Demandas');return pdf.save();
  }
  return {generate};
 });
