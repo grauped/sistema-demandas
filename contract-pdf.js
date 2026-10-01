@@ -23,7 +23,36 @@
             stubHours: decimal(record.hoursUnits), stubStart: dateBR(record.startDate),
             stubEnd: dateBR(record.endDate), stubRequest: dateBR(record.requestDate),
         };
-        for (const [key, checked] of Object.entries(instructor.documents)) values['doc_' + key] = checked ? 'X' : '';
+        const useNotes = ['practice', 'both'].includes(record.type) && Boolean(record.notes?.trim());
+        if (!useNotes) for (const [key, checked] of Object.entries(instructor.documents)) values['doc_' + key] = checked ? 'X' : '';
+        if (useNotes) {
+            const width = 539;
+            function wrap(size) {
+                const lines = [];
+                for (const paragraph of record.notes.trim().split(/\r?\n/)) {
+                    let line = '';
+                    for (const word of paragraph.trim().split(/\s+/)) {
+                        if (font.widthOfTextAtSize(word, size) > width) return null;
+                        const next = line ? line + ' ' + word : word;
+                        if (font.widthOfTextAtSize(next, size) > width) { lines.push(line); line = word; }
+                        else line = next;
+                    }
+                    lines.push(line);
+                }
+                return lines;
+            }
+            let size = 10, lines;
+            try {
+                for (; size >= 8; size -= .5) { lines = wrap(size); if (lines && lines.length * (size + 2) <= 88) break; }
+            } catch { throw new Error('As observações contêm caracteres não suportados no PDF.'); }
+            if (size < 8 || !lines) throw new Error('As observações são longas demais para o espaço do checklist. Reduza o texto para gerar o PDF sem cortes.');
+            page.drawRectangle({x:18.5,y:380.39,width:558,height:113,color:PDFLib.rgb(1,1,1)});
+            page.drawRectangle({x:18.5,y:479.89,width:558,height:13.5,color:PDFLib.rgb(.9,.9,.9)});
+            const heading = 'OBSERVAÇÕES';
+            const bold = await pdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+            page.drawText(heading,{x:(595.28-bold.widthOfTextAtSize(heading,9))/2,y:483.89,size:9,font:bold});
+            lines.forEach((line,index)=>{if(line)page.drawText(line,{x:28,y:466.89-index*(size+2),size,font});});
+        }
         for (const [key, value] of Object.entries(values)) {
             if (!value) continue;
             const box = template.fields[key];
