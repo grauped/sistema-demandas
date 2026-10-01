@@ -57,7 +57,7 @@
             typeof contract.requester !== 'string' || !contract.requester.trim() ||
             !['theory', 'practice', 'both'].includes(contract.type) ||
             !['', 'M', 'T', 'N', 'I'].includes(contract.shift) ||
-            !Number.isSafeInteger(contract.hoursUnits) || contract.hoursUnits <= 0 ||
+            !Number.isSafeInteger(contract.hoursUnits) || (contract.hoursUnits < 0 || (contract.hoursUnits === 0 && !contract.replacementId)) ||
             !Number.isSafeInteger(contract.hourRateCents) || contract.hourRateCents <= 0 ||
             !Number.isSafeInteger(contract.amountCents) || contract.amountCents !== total(contract.hoursUnits, contract.hourRateCents) ||
             contract.amountCents < 0 || typeof contract.cancelled !== 'boolean' ||
@@ -80,6 +80,16 @@
         }
         const ids = new Set(data.instructors.map(item => item.id));
         if (data.contracts.some(item => !ids.has(item.instructorId))) throw new Error('Contrato sem cadastro de instrutor.');
+        const byId = new Map(data.contracts.map(c => [c.id, c]));
+        for (const c of data.contracts) {
+            if (c.replacementId && (!byId.get(c.replacementId)?.substitution || byId.get(c.replacementId).substitution.original?.id !== c.id)) throw new Error('Vínculo do adendo inválido.');
+            if (!c.substitution) continue;
+            const a = c.substitution, original = a.original, parent = byId.get(original?.id);
+            if (!original || original.substitution || original.replacementId) throw new Error('Contrato original do adendo inválido.');
+            validateContract(original);
+            if (!parent || parent.replacementId !== c.id || c.id === parent.id || c.instructorId === parent.instructorId || original.instructorId !== parent.instructorId || parent.department !== c.department || c.hoursUnits + parent.hoursUnits !== original.hoursUnits || a.fulfilledHoursUnits !== parent.hoursUnits || c.endDate !== original.endDate || parent.startDate !== original.startDate || parent.endDate !== a.lastDate || parent.hourRateCents !== original.hourRateCents || !validDate(a.signDate) || !validDate(a.lastDate) || (parent.hoursUnits > 0 ? c.startDate <= a.lastDate : c.startDate < original.startDate) || typeof a.city !== 'string' || !a.city.trim() || typeof a.reason !== 'string' || !a.reason.trim()) throw new Error('Divisão de horas ou dados do adendo inválidos.');
+            for (const field of ['course','group','shift','discipline','type']) if(c[field] !== original[field] || parent[field] !== original[field]) throw new Error('O adendo deve manter a turma e a disciplina original.');
+        }
         return data;
     }
     function total(hoursUnits, hourRateCents) {
@@ -93,7 +103,7 @@
     function report(contracts, { start, end, course = '', group = '' }) {
         if (!validDate(start) || !validDate(end) || start > end) throw new Error('Informe um período válido: a data final deve ser igual ou posterior à inicial.');
         if (course && !courses.includes(course)) throw new Error('Curso inválido.');
-        const rows = contracts.filter(item => !item.cancelled && item.approvalStatus === 'approved' && item.referenceDate >= start && item.referenceDate <= end &&
+        const rows = contracts.filter(item => !item.cancelled && item.hoursUnits > 0 && item.approvalStatus === 'approved' && item.referenceDate >= start && item.referenceDate <= end &&
             (!course || item.course === course) && (!group || item.group === group.trim()));
         rows.sort((a, b) => a.referenceDate.localeCompare(b.referenceDate) || a.id.localeCompare(b.id));
         return { rows, total: rows.reduce((sum, item) => sum + item.amountCents, 0),

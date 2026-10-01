@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {createLocalStore}=require('./store.cjs');
 const {createAPI}=require('./api.cjs');
-const files=new Set(['index.html','app.js','style.css','contratos.html','contracts.css','contracts.js','contracts-core.js','cost-report.js','access-policy.js','contract-pdf.js','login.html','auth.js','login.js','auth.css','assets/vendor/pdf-lib.min.js','assets/vendor/pdf.min.mjs','assets/vendor/pdf.worker.min.mjs','assets/contract-template.js','assets/contract-template.pdf']);
+const files=new Set(['index.html','app.js','style.css','contratos.html','contracts.css','contracts.js','contracts-core.js','cost-report.js','access-policy.js','contract-pdf.js','addendum-pdf.js','assets/addendum-template.js','login.html','auth.js','login.js','auth.css','assets/vendor/pdf-lib.min.js','assets/vendor/pdf.min.mjs','assets/vendor/pdf.worker.min.mjs','assets/contract-template.js','assets/contract-template.pdf']);
 const publicFiles=new Set(['login.html','auth.js','login.js','auth.css','style.css']);
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.pdf':'application/pdf'};
 function createServer({directory=path.join(__dirname,'data')}={}){

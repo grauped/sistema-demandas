@@ -13,6 +13,8 @@
     <script src="assets/vendor/pdf-lib.min.js" defer></script>
     <script src="assets/contract-template.js" defer></script>
     <script src="contract-pdf.js" defer></script>
+    <script src="assets/addendum-template.js" defer></script>
+    <script src="addendum-pdf.js" defer></script>
     <script src="cost-report.js" defer></script>
     <script src="contracts.js" defer></script>
 </head>
@@ -127,6 +129,28 @@
             <p class="help" id="budgetHelp">Após aprovação pela gestora, o valor integral entra no ciclo de 7 a 6 que contém a data de término da disciplina. Alterações em contratos aprovados exigem nova aprovação. Solicitante e data de solicitação são preenchidos automaticamente nos próximos registros.</p>
             <p id="contractError" class="form-error" role="alert"></p>
             <div class="modal-actions"><button type="button" class="btn-secondary" data-close="contractDialog">Cancelar</button><button class="btn-primary" type="submit">Salvar registro</button></div>
+        </form>
+    </dialog>
+    <dialog id="substitutionDialog" class="module-dialog" aria-labelledby="substitutionTitle">
+        <form id="substitutionForm">
+            <div class="section-header"><h2 id="substitutionTitle">Contrato de substituição</h2><button type="button" class="icon-button" data-close="substitutionDialog" aria-label="Fechar">×</button></div>
+            <input type="hidden" id="substitutionOriginalId">
+            <p id="substitutionOriginalInfo"></p>
+            <div class="module-fields">
+                <label>Horas cumpridas pelo instrutor *<input id="substitutionFulfilled" required inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?"></label>
+                <label>Horas do substituto *<input id="substitutionRemaining" required inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?"></label>
+                <label>Último dia do instrutor original *<input type="date" id="substitutionLastDate" required></label>
+                <label>Início do substituto *<input type="date" id="substitutionStartDate" required></label>
+                <label class="full-row">Instrutor substituto *<select id="substitutionInstructor" required></select></label>
+                <label>Hora-aula do substituto (R$) *<input id="substitutionRate" required inputmode="decimal" pattern="[0-9]+([,.][0-9]{1,2})?"></label>
+                <label>Data do adendo *<input type="date" id="substitutionSignDate" required></label>
+                <label>Cidade *<input id="substitutionCity" required maxlength="80"></label>
+                <label class="full-row">Motivo da substituição *<textarea id="substitutionReason" required maxlength="500" rows="3"></textarea></label>
+            </div>
+            <p id="substitutionTotals" class="help" aria-live="polite"></p>
+            <p class="help">O término da disciplina será mantido. Os valores serão divididos entre os instrutores, sem somar o contrato integral novamente. Ambos os registros ficarão pendentes de aprovação. A parcela do original entra no orçamento pelo seu último dia; a do substituto, pelo término da disciplina.</p>
+            <p id="substitutionError" class="form-error" role="alert"></p>
+            <div class="modal-actions"><button type="button" class="btn-secondary" data-close="substitutionDialog">Cancelar</button><button type="submit" id="substitutionSave" class="btn-primary">Salvar substituição</button></div>
         </form>
     </dialog>
     <dialog id="pixDialog" class="module-dialog" aria-labelledby="pixTitle">

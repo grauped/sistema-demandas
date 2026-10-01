@@ -155,14 +155,67 @@
         $('contractList').innerHTML = rows.length ? rows.map(item => `
             <article class="record-card"><div>${role === 'gestora' && !item.cancelled && item.approvalStatus !== 'approved' ? `<label class="contract-select"><input type="checkbox" data-select-contract="${escape(item.id)}" aria-label="Selecionar ${escape(item.number)}" ${selectedContracts.has(item.id) ? 'checked' : ''} ${saving ? 'disabled' : ''}> Selecionar</label>` : ''}<h4>${escape(item.discipline)} · ${escape(C.groupLabel(item))}</h4><p>${escape(item.instructorSnapshot.name)}</p>
             <p>${escape(item.number)} · ${dateBR(item.startDate)} a ${dateBR(item.endDate)} · ${item.hoursUnits / 100} h</p>
+            ${item.substitution ? `<p>Substituição do contrato ${escape(item.substitution.original.number)} · ${escape(item.substitution.original.instructorSnapshot.name)}</p>` : item.replacementId ? '<p>Carga horária ajustada às horas cumpridas · possui adendo de substituição</p>' : ''}
             <p>Chave Pix: ${escape(item.instructorSnapshot.pix || 'Não informada')}</p><p>Orçamento: ${dateBR(item.referenceDate)}</p><span class="record-status ${item.cancelled ? 'inactive' : item.approvalStatus === 'approved' ? '' : 'pending'}">${item.cancelled ? 'Cancelado · fora do orçamento' : item.approvalStatus === 'approved' ? `Aprovado pela gestora${item.approvedAt ? ' em ' + dateBR(item.approvedAt.slice(0,10)) : ''}` : 'Pendente de aprovação'}</span></div>
             <div class="record-actions">${role === 'gestora' && !item.cancelled ? `<button class="btn-primary" data-contract="approve" data-id="${escape(item.id)}">${item.approvalStatus === 'approved' ? 'Retirar aprovação' : 'Aprovar contrato'}</button>` : ''}<strong class="record-total">${money(item.amountCents)}</strong>
             ${role === 'gestora' && !item.cancelled ? `<button class="btn-secondary" data-contract="pix" data-id="${escape(item.id)}">Editar Pix</button>` : ''}<button class="btn-secondary" data-contract="pdf" data-id="${escape(item.id)}">Ver PDF</button>
-            ${!item.cancelled ? `<button class="text-button" data-contract="edit" data-id="${escape(item.id)}">Editar</button>` : ''}
+            ${!item.cancelled && !item.substitution && !item.replacementId ? `<button class="text-button" data-contract="edit" data-id="${escape(item.id)}">Editar</button>` : ''}
             <button class="text-button" data-contract="copy" data-id="${escape(item.id)}">Reutilizar</button>
-            <button class="text-button" data-contract="toggle" data-id="${escape(item.id)}">${item.cancelled ? 'Reativar' : 'Cancelar registro'}</button></div></article>`).join('') :
+            ${!item.substitution && !item.replacementId ? `<button class="text-button" data-contract="toggle" data-id="${escape(item.id)}">${item.cancelled ? 'Reativar' : 'Cancelar registro'}</button>` : ''}
+            ${!item.cancelled ? `<button class="btn-secondary" data-contract="substitution" data-id="${escape(item.id)}">${item.substitution || item.replacementId ? 'Editar substituição' : 'Contrato de substituição'}</button>` : ''}
+            ${item.substitution || item.replacementId ? `<button class="btn-secondary" data-contract="adendum" data-id="${escape(item.id)}">Ver adendo PDF</button>` : ''}</div></article>`).join('') :
             '<div class="empty-state"><strong>Nenhum contrato encontrado.</strong><span>Selecione um instrutor e preencha os dados pedagógicos.</span></div>';
     }
+
+    function substitutionSource() {
+        const parent=data.contracts.find(c=>c.id===$('substitutionOriginalId').value);
+        return parent?.replacementId ? data.contracts.find(c=>c.id===parent.replacementId).substitution.original : parent;
+    }
+    function openSubstitution(item) {
+        if(saving)return;
+        const parent=item.substitution ? data.contracts.find(c=>c.id===item.substitution.original.id) : item;
+        const child=parent.replacementId ? data.contracts.find(c=>c.id===parent.replacementId) : null;
+        const original=child?.substitution.original || parent;
+        $('substitutionForm').reset();$('substitutionError').textContent='';
+        $('substitutionOriginalId').value=parent.id;
+        $('substitutionOriginalInfo').textContent=`${original.number} · ${original.instructorSnapshot.name} · ${original.discipline} · ${C.groupLabel(original)} · ${original.hoursUnits/100} horas · término ${dateBR(original.endDate)}`;
+        $('substitutionInstructor').innerHTML='<option value="">Selecione o substituto</option>'+data.instructors.filter(i=>i.active&&i.department===original.department&&i.id!==original.instructorId).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')).map(i=>`<option value="${escape(i.id)}">${escape(i.name)}</option>`).join('');
+        $('substitutionInstructor').value=child?.instructorId || '';
+        $('substitutionFulfilled').value=child ? child.substitution.fulfilledHoursUnits/100 : '';
+        $('substitutionRemaining').value=child ? child.hoursUnits/100 : '';
+        $('substitutionRate').value=((child?.hourRateCents || original.hourRateCents)/100).toFixed(2).replace('.',',');
+        $('substitutionLastDate').value=child?.substitution.lastDate || '';
+        $('substitutionStartDate').value=child?.startDate || '';
+        for(const id of ['substitutionLastDate','substitutionStartDate']){$(id).min=original.startDate;$(id).max=original.endDate;}
+        $('substitutionSignDate').value=child?.substitution.signDate || today();
+        $('substitutionCity').value=child?.substitution.city || 'Mossoró';
+        $('substitutionReason').value=child?.substitution.reason || 'O instrutor necessita se ausentar antes do final da disciplina';
+        updateSubstitutionTotals();$('substitutionDialog').showModal();
+    }
+    function updateSubstitutionTotals() {
+        try {
+            const original=substitutionSource(),fulfilled=C.cents($('substitutionFulfilled').value),remaining=C.cents($('substitutionRemaining').value);
+            $('substitutionLastDate').required=fulfilled>0;
+            $('substitutionLastDate').disabled=fulfilled===0;
+            if(fulfilled+remaining!==original.hoursUnits||remaining<=0)throw new Error(`As parcelas devem somar ${original.hoursUnits/100} horas, com saldo para o substituto.`);
+            $('substitutionTotals').textContent=`Original: ${fulfilled/100} h · ${money(C.total(fulfilled,original.hourRateCents))}. Substituto: ${remaining/100} h · ${money(C.total(remaining,C.cents($('substitutionRate').value)))}.`;
+        } catch(error){$('substitutionTotals').textContent=error.message;}
+    }
+    $('substitutionFulfilled').addEventListener('input',()=>{
+        try{$('substitutionRemaining').value=Math.max(0,substitutionSource().hoursUnits-C.cents($('substitutionFulfilled').value))/100;}catch{$('substitutionRemaining').value='';}
+        updateSubstitutionTotals();
+    });
+    for(const id of ['substitutionRemaining','substitutionRate'])$(id).addEventListener('input',updateSubstitutionTotals);
+    $('substitutionForm').addEventListener('submit',async event=>{
+        event.preventDefault();if(saving)return;
+        try{
+            const input={id:$('substitutionOriginalId').value,instructorId:$('substitutionInstructor').value,fulfilledHoursUnits:C.cents($('substitutionFulfilled').value),remainingHoursUnits:C.cents($('substitutionRemaining').value),hourRateCents:C.cents($('substitutionRate').value),lastDate:$('substitutionLastDate').value,startDate:$('substitutionStartDate').value,signDate:$('substitutionSignDate').value,city:$('substitutionCity').value,reason:$('substitutionReason').value,revision};
+            saving=true;$('substitutionSave').disabled=true;
+            const result=await Auth.api('/api/contracts/substitution',{method:'POST',data:input});data=result.data;revision=result.revision;
+            $('substitutionDialog').close();render();notify('Substituição salva. Os dois registros aguardam aprovação da gestora.');
+        }catch(error){$('substitutionError').textContent=error.message;}
+        finally{saving=false;$('substitutionSave').disabled=false;renderContracts();}
+    });
 
     function openContractPix(item) {
         if(role !== 'gestora' || item.cancelled || saving)return;
@@ -334,14 +387,15 @@
 
     function reportTitle(){const department=role==='gestora'?$('departmentFilter').value:role;return 'RELATÓRIO DE DESPESAS COM DISCIPLINAS'+(department==='exatas'?' EXATAS':department==='saude'?' SAÚDE':' GERAL');}
     $('reportExcel').addEventListener('click',()=>{const result=renderReport();if(!result)return;const f=filters();download(new Blob([CostReport.xlsx(result, {title:reportTitle(),...f})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`relatorio-custos-${f.start}-${f.end}.xlsx`);});
-    async function showPDF(record) {
+    async function showPDF(record, adendum = false) {
         if (busyPDF) return;
         busyPDF = true;
         try {
-            const bytes = await ContractPDF.generate(record);
+            const source = record.replacementId ? data.contracts.find(c=>c.id===record.replacementId)?.substitution.original || record : record;
+            const bytes = adendum ? await AddendumPDF.generate(record) : await ContractPDF.generate(source);
             if (pdfUrl) URL.revokeObjectURL(pdfUrl);
             pdfUrl = URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-            pdfName = `${record.number}-${C.groupLabel(record)}.pdf`;
+            pdfName = `${adendum ? 'Adendo-' : ''}${record.number}-${C.groupLabel(record)}.pdf`;
             $('pdfTitle').textContent = record.number + ' · ' + C.groupLabel(record);
             $('pdfCanvas').hidden = true;
             $('pdfPreviewStatus').textContent = 'Carregando prévia…';
@@ -357,7 +411,7 @@
                 const viewport = page.getViewport({ scale: 1.6 });
                 const canvas = $('pdfCanvas'); canvas.width = viewport.width; canvas.height = viewport.height;
                 await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
-                if (version === previewVersion) { canvas.hidden = false; $('pdfPreviewStatus').textContent = '1 página A4 · canhoto incluído'; }
+                if (version === previewVersion) { canvas.hidden = false; $('pdfPreviewStatus').textContent = adendum ? '1 página A4 · adendo de substituição' : '1 página A4 · canhoto incluído'; }
             } catch {
                 $('pdfPreviewStatus').textContent = 'A prévia não está disponível neste navegador. Use Baixar PDF para abrir o documento.';
             } finally { if (previewDocument) await previewDocument.destroy(); }
@@ -423,6 +477,8 @@
         const item=data.contracts.find(item=>item.id===button.dataset.id); if(!item)return;
         if(button.dataset.contract==='pix')openContractPix(item);
         else if(button.dataset.contract==='pdf') showPDF(item);
+        else if(button.dataset.contract==='substitution') openSubstitution(item);
+        else if(button.dataset.contract==='adendum') showPDF(item.replacementId ? data.contracts.find(c=>c.id===item.replacementId) : item,true);
         else if(button.dataset.contract==='approve') {
             if(saving)return;saving=true;
             try{const result=await Auth.api('/api/contracts/approval',{method:'POST',data:{id:item.id,status:item.approvalStatus==='approved'?'pending':'approved',revision}});data=result.data;revision=result.revision;render();notify(item.approvalStatus==='approved'?'Aprovação retirada. Contrato fora do orçamento.':'Contrato aprovado e incluído no orçamento do período de término.');}catch(error){notify(error.message);}finally{saving=false;renderContracts();}

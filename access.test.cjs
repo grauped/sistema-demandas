@@ -177,3 +177,37 @@ test('gestora edita Pix do instrutor e escolhe os contratos atualizados',async t
     assert.equal(byId('a').instructorSnapshot.pix,'nova@example.com');assert.equal(byId('b').instructorSnapshot.pix,'nova@example.com');assert.equal(byId('b').approvalStatus,'pending');
     assert.equal(byId('cancelled').instructorSnapshot.pix,person.pix);assert.equal(byId('other').instructorSnapshot.pix,other.pix);assert.equal(byId('other').approvalStatus,'approved');
 });
+
+test('substituição divide horas, preserva o original e protege acesso e orçamento',async t=>{
+ const directory=fs.mkdtempSync(path.join(__dirname,'tmp','access-test-'));
+ const {server}=createServer({directory});await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ t.after(()=>new Promise(r=>{server.close(r);server.closeAllConnections();}));
+ const base='http://127.0.0.1:'+server.address().port;
+ async function call(route,method='GET',data,session){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(session?{Cookie:session.cookie,'X-CSRF-Token':session.csrf}:{})},...(data===undefined?{}:{body:JSON.stringify(data)})});return {status:r.status,data:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]};}
+ await call('/api/setup','POST',passwords);const sessions={};
+ for(const role of ['gestora','exatas','saude']){const l=await call('/api/login','POST',{username:ACCOUNTS[role],password:passwords[role]});sessions[role]={cookie:l.cookie,csrf:l.data.csrf};}
+ const old=instructor('original','exatas'),sub=instructor('substitute','exatas'),health=instructor('health','saude');
+ let state=(await call('/api/contracts','GET',undefined,sessions.gestora)).data;
+ const source={...contract('orig',old,'ADM'),hoursUnits:4800,amountCents:96000};
+ let r=await call('/api/contracts','PUT',{...state,data:{...C.empty(),instructors:[old,sub,health],contracts:[source]}},sessions.gestora);
+ state=r.data;
+ const input={id:'orig',instructorId:sub.id,fulfilledHoursUnits:800,remainingHoursUnits:4000,hourRateCents:2000,lastDate:'2026-09-12',startDate:'2026-09-29',signDate:'2026-09-25',city:'Mossoró',reason:'Ausência do instrutor',revision:state.revision};
+ assert.equal((await call('/api/contracts/substitution','POST',input,sessions.saude)).status,403);
+ for(const bad of [{remainingHoursUnits:4100},{instructorId:old.id},{instructorId:health.id},{fulfilledHoursUnits:-1},{startDate:'2026-09-11'},{lastDate:'2026-08-01'},{hourRateCents:0}])assert.equal((await call('/api/contracts/substitution','POST',{...input,...bad},sessions.exatas)).status,400);
+ assert.equal((await call('/api/contracts/substitution','POST',{...input,revision:-1},sessions.exatas)).status,409);
+ assert.equal((await call('/api/contracts','GET',undefined,sessions.gestora)).data.revision,state.revision);
+ r=await call('/api/contracts/substitution','POST',input,sessions.exatas);assert.equal(r.status,200,JSON.stringify(r.data));
+ const childId=r.data.id;state=r.data;
+ const parent=state.data.contracts.find(c=>c.id==='orig'),child=state.data.contracts.find(c=>c.id===childId);
+ assert.equal(parent.hoursUnits,800);assert.equal(child.hoursUnits,4000);assert.equal(parent.amountCents+child.amountCents,source.amountCents);assert.equal(child.substitution.original.hoursUnits,4800);
+ assert.equal(C.report(state.data.contracts,{start:'2026-01-01',end:'2026-12-31'}).total,0);
+ const approved=await call('/api/contracts/approval/batch','POST',{ids:['orig',childId],revision:state.revision},sessions.gestora);assert.equal(approved.status,200);
+ assert.equal(C.report(approved.data.data.contracts,{start:'2026-01-01',end:'2026-12-31'}).total,96000);
+ const bad=structuredClone(approved.data);bad.data.contracts[0].notes='alteração indevida';assert.equal((await call('/api/contracts','PUT',bad,sessions.exatas)).status,400);
+ r=await call('/api/contracts/substitution','POST',{...input,revision:approved.data.revision,fulfilledHoursUnits:1200,remainingHoursUnits:3600},sessions.exatas);
+ assert.equal(r.status,200);assert.equal(r.data.id,childId);assert.equal(r.data.data.contracts.length,2);assert.ok(r.data.data.contracts.every(c=>c.approvalStatus==='pending'));
+ const PDF=require('./addendum-pdf.js');const sample=r.data.data.contracts.find(c=>c.id===childId);const bytes=await PDF.generate(sample);const {PDFDocument}=require('./assets/vendor/pdf-lib.min.js');assert.equal((await PDFDocument.load(bytes)).getPageCount(),1);
+ fs.writeFileSync('tmp/adendo-teste.pdf',bytes);
+ const S=require('./substitution.cjs');const zero=S.apply({...C.empty(),instructors:[old,sub],contracts:[source]},{...input,fulfilledHoursUnits:0,remainingHoursUnits:4800},{id:'zero',number:'SC-2026-0009'}).next;C.validateStore(zero);assert.equal(zero.contracts[0].amountCents,0);
+ assert.throws(()=>S.apply({...C.empty(),instructors:[old,sub],contracts:[source]},{...input,fulfilledHoursUnits:4900,remainingHoursUnits:1},{id:'bad',number:'SC-2026-0010'}));
+});
