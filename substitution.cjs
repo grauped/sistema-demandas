@@ -22,7 +22,7 @@ function apply(data,input,{id,number}){
  for(const field of ['document','contact','address','number','complement','neighborhood','city','state','postalCode','pix','pixType'])if(!snapshot[field]&&person[field])snapshot[field]=person[field];
  const child={...structuredClone(original),id:previous?.id||id,number:previous?.number||number,instructorId:person.id,instructorSnapshot:snapshot,hoursUnits:remaining,hourRateCents:input.hourRateCents,amountCents:C.total(remaining,input.hourRateCents),startDate:input.startDate,requestDate:input.signDate,lessonCount:null,substitution:{original,fulfilledHoursUnits:fulfilled,lastDate:input.lastDate,signDate:input.signDate,city:input.city.trim(),reason:input.reason.trim()}};
  // Preserve the initial agreement in the adendo; budget only the hours actually allocated.
- parent.hoursUnits=fulfilled;parent.amountCents=C.total(fulfilled,parent.hourRateCents);parent.endDate=input.lastDate;parent.referenceDate=input.lastDate;parent.lessonCount=null;parent.replacementId=child.id;
+ parent.hoursUnits=fulfilled;parent.amountCents=C.total(fulfilled,parent.hourRateCents);parent.endDate=input.lastDate;parent.referenceDate=original.endDate;parent.lessonCount=null;parent.replacementId=child.id;
  for(const item of [parent,child]){item.approvalStatus='pending';item.approvedBy=null;item.approvedAt=null;}
  if(previous)next.contracts[next.contracts.findIndex(c=>c.id===previous.id)]=child;else next.contracts.push(child);
  P.validate(next);return {next,id:child.id};

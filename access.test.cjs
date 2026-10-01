@@ -203,6 +203,12 @@ test('substituição divide horas, preserva o original e protege acesso e orçam
  assert.equal(C.report(state.data.contracts,{start:'2026-01-01',end:'2026-12-31'}).total,0);
  const approved=await call('/api/contracts/approval/batch','POST',{ids:['orig',childId],revision:state.revision},sessions.gestora);assert.equal(approved.status,200);
  assert.equal(C.report(approved.data.data.contracts,{start:'2026-01-01',end:'2026-12-31'}).total,96000);
+ assert.equal(C.report(approved.data.data.contracts,{start:'2026-09-01',end:'2026-09-30'}).total,0);
+ assert.equal(C.report(approved.data.data.contracts,{start:'2026-10-01',end:'2026-10-01'}).total,96000);
+ assert.equal(parent.endDate,'2026-09-12');assert.equal(parent.referenceDate,'2026-10-01');
+ const legacy=structuredClone(approved.data.data);legacy.contracts.find(c=>c.id==='orig').referenceDate='2026-09-12';C.validateStore(legacy);
+ assert.equal(C.report(legacy.contracts,{start:'2026-09-01',end:'2026-09-30'}).total,0);
+ assert.equal(C.report(legacy.contracts,{start:'2026-10-01',end:'2026-10-01'}).total,96000);
  const bad=structuredClone(approved.data);bad.data.contracts[0].notes='alteração indevida';assert.equal((await call('/api/contracts','PUT',bad,sessions.exatas)).status,400);
  r=await call('/api/contracts/substitution','POST',{...input,revision:approved.data.revision,fulfilledHoursUnits:1200,remainingHoursUnits:3600},sessions.exatas);
  assert.equal(r.status,200);assert.equal(r.data.id,childId);assert.equal(r.data.data.contracts.length,2);assert.ok(r.data.data.contracts.every(c=>c.approvalStatus==='pending'));

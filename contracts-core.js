@@ -52,7 +52,7 @@
             typeof contract.instructorId !== 'string' || !courses.includes(contract.course) ||
             typeof contract.group !== 'string' || !contract.group.trim() || contract.group.length > 80 || /[<>\x00-\x1f]/.test(contract.group) ||
             !validDate(contract.referenceDate) || !validDate(contract.startDate) || !validDate(contract.endDate) ||
-            !validDate(contract.requestDate) || contract.startDate > contract.endDate || contract.referenceDate !== contract.endDate ||
+            !validDate(contract.requestDate) || contract.startDate > contract.endDate || (!contract.replacementId && contract.referenceDate !== contract.endDate) ||
             typeof contract.discipline !== 'string' || !contract.discipline.trim() ||
             typeof contract.requester !== 'string' || !contract.requester.trim() ||
             !['theory', 'practice', 'both'].includes(contract.type) ||
@@ -87,7 +87,7 @@
             const a = c.substitution, original = a.original, parent = byId.get(original?.id);
             if (!original || original.substitution || original.replacementId) throw new Error('Contrato original do adendo inválido.');
             validateContract(original);
-            if (!parent || parent.replacementId !== c.id || c.id === parent.id || c.instructorId === parent.instructorId || original.instructorId !== parent.instructorId || parent.department !== c.department || c.hoursUnits + parent.hoursUnits !== original.hoursUnits || a.fulfilledHoursUnits !== parent.hoursUnits || c.endDate !== original.endDate || parent.startDate !== original.startDate || parent.endDate !== a.lastDate || parent.hourRateCents !== original.hourRateCents || !validDate(a.signDate) || !validDate(a.lastDate) || (parent.hoursUnits > 0 ? c.startDate <= a.lastDate : c.startDate < original.startDate) || typeof a.city !== 'string' || !a.city.trim() || typeof a.reason !== 'string' || !a.reason.trim()) throw new Error('Divisão de horas ou dados do adendo inválidos.');
+            if (!parent || parent.replacementId !== c.id || c.id === parent.id || c.instructorId === parent.instructorId || original.instructorId !== parent.instructorId || parent.department !== c.department || c.hoursUnits + parent.hoursUnits !== original.hoursUnits || a.fulfilledHoursUnits !== parent.hoursUnits || c.endDate !== original.endDate || parent.startDate !== original.startDate || parent.endDate !== a.lastDate || ![original.endDate, a.lastDate].includes(parent.referenceDate) || parent.hourRateCents !== original.hourRateCents || !validDate(a.signDate) || !validDate(a.lastDate) || (parent.hoursUnits > 0 ? c.startDate <= a.lastDate : c.startDate < original.startDate) || typeof a.city !== 'string' || !a.city.trim() || typeof a.reason !== 'string' || !a.reason.trim()) throw new Error('Divisão de horas ou dados do adendo inválidos.');
             for (const field of ['course','group','shift','discipline','type']) if(c[field] !== original[field] || parent[field] !== original[field]) throw new Error('O adendo deve manter a turma e a disciplina original.');
         }
         return data;
@@ -100,12 +100,19 @@
     function groupLabel(contract) {
         return (contract.course === 'GERAL' ? '' : contract.course) + contract.group + (contract.shift ? '-' + contract.shift : '') + (contract.is2D ? '-2D' : '');
     }
+    function budgetDate(item, contracts) {
+        if (item.replacementId) {
+            const replacement = contracts.find(c => c.id === item.replacementId);
+            if (replacement?.substitution?.original?.id === item.id) return replacement.substitution.original.endDate;
+        }
+        return item.referenceDate;
+    }
     function report(contracts, { start, end, course = '', group = '' }) {
         if (!validDate(start) || !validDate(end) || start > end) throw new Error('Informe um período válido: a data final deve ser igual ou posterior à inicial.');
         if (course && !courses.includes(course)) throw new Error('Curso inválido.');
-        const rows = contracts.filter(item => !item.cancelled && item.hoursUnits > 0 && item.approvalStatus === 'approved' && item.referenceDate >= start && item.referenceDate <= end &&
+        const rows = contracts.filter(item => !item.cancelled && item.hoursUnits > 0 && item.approvalStatus === 'approved' && budgetDate(item, contracts) >= start && budgetDate(item, contracts) <= end &&
             (!course || item.course === course) && (!group || item.group === group.trim()));
-        rows.sort((a, b) => a.referenceDate.localeCompare(b.referenceDate) || a.id.localeCompare(b.id));
+        rows.sort((a, b) => budgetDate(a, contracts).localeCompare(budgetDate(b, contracts)) || a.id.localeCompare(b.id));
         return { rows, total: rows.reduce((sum, item) => sum + item.amountCents, 0),
             byCourse: courses.map(code => ({ course: code,
                 total: rows.filter(item => item.course === code).reduce((sum, item) => sum + item.amountCents, 0),
@@ -119,5 +126,5 @@
         };
         return '\uFEFF' + rows.map(row => row.map(cell).join(';')).join('\r\n');
     }
-    return { courses, hoursPerLesson, lessonHours, empty, validDate, cycle, currentCycle, cents, total, groupLabel, validateStore, validateContract, report, csv };
+    return { courses, hoursPerLesson, lessonHours, empty, validDate, cycle, currentCycle, cents, total, groupLabel, budgetDate, validateStore, validateContract, report, csv };
 });
