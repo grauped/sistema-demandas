@@ -5,11 +5,12 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     'use strict';
     const courses = ['ADM', 'STB', 'ELT', 'DSI', 'ELP', 'BCV', 'ENF', 'RAD', 'EIC', 'FLB', 'GERAL'];
-    const hoursPerLesson = Object.freeze({ ADM: 4, ELT: 4, STB: 4, DSI: 4, ELP: 3, BCV: 3, ENF: 4, RAD: 4, EIC: 4, FLB: 3 });
-    function lessonHours(course, days) {
-        if (!hoursPerLesson[course]) throw new Error('Curso sem carga horária por aula definida.');
+    const hoursPerLesson = Object.freeze([3, 4]);
+    function lessonHours(course, days, dailyHours) {
+        if (!courses.includes(course) || course === 'GERAL') throw new Error('Selecione um curso para calcular as horas.');
         if (!Number.isSafeInteger(days) || days <= 0) throw new Error('Informe a quantidade de dias de aula.');
-        const units = days * hoursPerLesson[course] * 100;
+        if (![3, 4].includes(dailyHours)) throw new Error('Selecione 3 ou 4 horas por dia.');
+        const units = days * dailyHours * 100;
         if (!Number.isSafeInteger(units)) throw new Error('Carga horária excede o limite suportado.');
         return units;
     }
@@ -64,6 +65,8 @@
             typeof contract.notes !== 'string') throw new Error('Registro de contrato inválido.');
         if (contract.is2D !== undefined && typeof contract.is2D !== 'boolean') throw new Error('Opção de turma 2D inválida.');
         if (contract.lessonCount != null && (!Number.isSafeInteger(contract.lessonCount) || contract.lessonCount <= 0)) throw new Error('Quantidade de aulas inválida.');
+        if (contract.dailyHours != null && ![3, 4].includes(contract.dailyHours)) throw new Error('Carga diária inválida.');
+        if (contract.lessonCount != null && contract.dailyHours != null && contract.hoursUnits !== lessonHours(contract.course, contract.lessonCount, contract.dailyHours)) throw new Error('A carga horária não corresponde aos dias e às horas diárias selecionados.');
         if (contract.approvalStatus !== undefined && !['pending','approved'].includes(contract.approvalStatus)) throw new Error('Situação de aprovação inválida.');
         validateInstructor(contract.instructorSnapshot);
         if (contract.instructorSnapshot.id !== contract.instructorId) throw new Error('Instrutor do contrato inválido.');

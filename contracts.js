@@ -270,6 +270,8 @@
             for (const [key,suffix] of Object.entries(fields)) $('contract'+suffix).value = item[key];
             $('contractIs2D').checked = item.is2D === true;
             $('contractLessons').value = item.lessonCount ?? '';
+            const derivedDailyHours = item.lessonCount && [3,4].includes(item.hoursUnits / 100 / item.lessonCount) ? item.hoursUnits / 100 / item.lessonCount : '';
+            $('contractDailyHours').value = item.dailyHours ?? derivedDailyHours;
             $('contractHours').value = String(item.hoursUnits / 100).replace('.',',');
             $('contractHourRate').value = (item.hourRateCents / 100).toFixed(2).replace('.',',');
             if (copy) { $('contractRequestDate').value = today(); $('contractRequester').value = data.settings.requester || item.requester; }
@@ -297,22 +299,25 @@
         $('contractReference').value = $('contractEnd').value;
     }
     function updateLessonHours(recalculate = true) {
-        const rate = C.hoursPerLesson[$('contractCourse').value];
+        const course = $('contractCourse').value;
+        const isGeneral = course === 'GERAL';
         const count = $('contractLessons').value;
-        $('contractLessons').disabled = !rate;
-        $('contractHours').readOnly = Boolean(rate && count);
-        $('lessonHoursHelp').textContent = rate ? `Cada dia de aula deste curso corresponde a ${rate} horas. Informe os dias para calcular automaticamente.` : 'Informe a carga horária manualmente para lançamentos gerais.';
-        if (rate && count) {
+        const dailyHours = Number($('contractDailyHours').value);
+        $('contractLessons').disabled = isGeneral;
+        $('contractDailyHours').disabled = isGeneral;
+        $('contractHours').readOnly = Boolean(!isGeneral && count && dailyHours);
+        $('lessonHoursHelp').textContent = isGeneral ? 'Informe a carga horária manualmente para lançamentos gerais.' : 'Escolha 3 ou 4 horas por dia e informe os dias para calcular a carga horária.';
+        if (!isGeneral && count && dailyHours) {
             try {
-                const units = C.lessonHours($('contractCourse').value, Number(count));
+                const units = C.lessonHours(course, Number(count), dailyHours);
                 if (recalculate) $('contractHours').value = String(units / 100);
-                $('lessonHoursHelp').textContent = `${count} dias × ${rate} horas = ${units / 100} horas.`;
-                if (!recalculate && C.cents($('contractHours').value) !== units) $('lessonHoursHelp').textContent += ' Carga horária anterior preservada; altere os dias ou o curso para recalcular.';
+                $('lessonHoursHelp').textContent = `${count} dias × ${dailyHours} horas = ${units / 100} horas.`;
+                if (!recalculate && C.cents($('contractHours').value) !== units) $('lessonHoursHelp').textContent += ' Carga horária anterior preservada; altere os dias ou as horas diárias para recalcular.';
             } catch (error) {
                 if (recalculate) $('contractHours').value = '';
                 $('lessonHoursHelp').textContent = error.message;
             }
-        } else if (recalculate && rate) $('contractHours').value = '';
+        } else if (recalculate && !isGeneral) $('contractHours').value = '';
         updateTotal();
     }
     function updateTotal() {
@@ -331,12 +336,15 @@
             const hoursUnits = C.cents($('contractHours').value);
             const hourRateCents = C.cents($('contractHourRate').value);
             if (!hoursUnits || !hourRateCents) throw new Error('Carga horária e valor hora-aula devem ser maiores que zero.');
+            const dailyHours = $('contractDailyHours').disabled || !$('contractDailyHours').value ? null : Number($('contractDailyHours').value);
+            const lessonCount = $('contractLessons').disabled || !$('contractLessons').value ? null : Number($('contractLessons').value);
+            if (dailyHours != null && lessonCount != null && hoursUnits !== C.lessonHours($('contractCourse').value, lessonCount, dailyHours)) throw new Error('A carga horária deve corresponder aos dias e às horas por dia selecionados.');
             const year = today().slice(0,4);
             const prefix = 'SC-' + year + '-';
             const sequence = Math.max(0,...data.contracts.filter(item => item.number.startsWith(prefix)).map(item=>Number(item.number.slice(prefix.length)))) + 1;
             const record = { id: old?.id || uid(), number: old?.number || prefix + String(sequence).padStart(4,'0'),
                 instructorId: instructor.id, instructorSnapshot: clone(old?.instructorId === instructor.id ? old.instructorSnapshot : instructor),
-                lessonCount: !$('contractLessons').disabled && $('contractLessons').value ? Number($('contractLessons').value) : null, hoursUnits, hourRateCents, amountCents: C.total(hoursUnits,hourRateCents), cancelled: old?.cancelled || false };
+                lessonCount, dailyHours, hoursUnits, hourRateCents, amountCents: C.total(hoursUnits,hourRateCents), cancelled: old?.cancelled || false };
             const fields = { discipline: 'Discipline', type: 'Type', course: 'Course', group: 'Group', shift: 'Shift', startDate: 'Start', endDate: 'End', requester: 'Requester', requestDate: 'RequestDate', referenceDate: 'Reference', notes: 'Notes' };
             for (const [key,suffix] of Object.entries(fields)) record[key] = $('contract'+suffix).value.trim();
             record.is2D = $('contractIs2D').checked;
@@ -490,6 +498,7 @@
     $('contractInstructor').addEventListener('change',()=>{updateCourses();updateLessonHours();previewInstructor();});
     $('contractCourse').addEventListener('change',()=>updateLessonHours());
     $('contractLessons').addEventListener('input',()=>updateLessonHours());
+    $('contractDailyHours').addEventListener('change',()=>updateLessonHours());
     $('departmentFilter').addEventListener('change',()=>{
         const department=$('departmentFilter').value;
         const codes=P.roles[department]?.courses || allowedCourses;
