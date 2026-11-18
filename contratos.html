@@ -154,6 +154,17 @@
             <div class="modal-actions"><button type="button" class="btn-secondary" data-close="substitutionDialog">Cancelar</button><button type="submit" id="substitutionSave" class="btn-primary">Salvar substituição</button></div>
         </form>
     </dialog>
+    <dialog id="cancellationDialog" class="module-dialog" aria-labelledby="cancellationTitle">
+        <form id="cancellationForm">
+            <div class="section-header"><h2 id="cancellationTitle">Cancelar contrato</h2><button type="button" class="icon-button" data-close="cancellationDialog" aria-label="Fechar">×</button></div>
+            <input type="hidden" id="cancellationContractId">
+            <p id="cancellationContractInfo"></p>
+            <div class="module-fields"><label class="full-row">Motivo do cancelamento *<textarea id="cancellationReason" required maxlength="500" rows="4" placeholder="Descreva o motivo do cancelamento"></textarea></label></div>
+            <p class="help">O motivo ficará salvo no contrato e ele será removido do orçamento.</p>
+            <p id="cancellationError" class="form-error" role="alert"></p>
+            <div class="modal-actions"><button type="button" class="btn-secondary" data-close="cancellationDialog">Voltar</button><button type="submit" class="btn-primary">Confirmar cancelamento</button></div>
+        </form>
+    </dialog>
     <dialog id="pixDialog" class="module-dialog" aria-labelledby="pixTitle">
         <form id="pixForm">
             <div class="section-header"><h2 id="pixTitle">Chave Pix do instrutor</h2><button type="button" class="icon-button" data-close="pixDialog" aria-label="Fechar">×</button></div>

@@ -112,7 +112,9 @@ test('servidor autentica apenas os três e-mails e isola consultas, gravações,
     assert.equal(new Set(batchResult.data.data.contracts.map(item=>item.approvedAt)).size,1);
     assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:{...batch,revision:batchResult.data.revision}})).status,409);
     const cancelled=structuredClone(batchResult.data);cancelled.data.contracts[0].cancelled=true;
-    const cancelledSaved=await call('/api/contracts',{method:'PUT',session:sessions.gestora,data:cancelled});assert.equal(cancelledSaved.status,200);
+    assert.equal((await call('/api/contracts',{method:'PUT',session:sessions.gestora,data:cancelled})).status,400);
+    const cancelledSaved=await call('/api/contracts/cancellation',{method:'POST',session:sessions.gestora,data:{id:cancelled.data.contracts[0].id,cancelled:true,reason:'Turma encerrada',revision:batchResult.data.revision}});assert.equal(cancelledSaved.status,200);
+    assert.equal(cancelledSaved.data.data.contracts[0].cancellationReason,'Turma encerrada');
     assert.equal((await call('/api/contracts/approval/batch',{method:'POST',session:sessions.gestora,data:{ids:[cancelled.data.contracts[0].id],revision:cancelledSaved.data.revision}})).status,409);
     assert.equal((await call('/api/contracts',{session:sessions.gestora})).data.revision,cancelledSaved.data.revision);
     assert.equal((await call('/api/logout',{method:'POST',session:sessions.exatas,data:{}})).status,200);
@@ -176,6 +178,23 @@ test('gestora edita Pix do instrutor e escolhe os contratos atualizados',async t
     assert.equal(result.status,200);assert.equal(result.data.updatedCount,2);
     assert.equal(byId('a').instructorSnapshot.pix,'nova@example.com');assert.equal(byId('b').instructorSnapshot.pix,'nova@example.com');assert.equal(byId('b').approvalStatus,'pending');
     assert.equal(byId('cancelled').instructorSnapshot.pix,person.pix);assert.equal(byId('other').instructorSnapshot.pix,other.pix);assert.equal(byId('other').approvalStatus,'approved');
+});
+
+test('cancelamento exige motivo, mantém o histórico e reativa sem apagar o motivo',async t=>{
+    const directory=fs.mkdtempSync(path.join(__dirname,'tmp','access-test-'));
+    const {server}=createServer({directory});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+    t.after(()=>new Promise(resolve=>{server.close(resolve);server.closeAllConnections();}));
+    const base='http://127.0.0.1:'+server.address().port;
+    async function call(route,method='GET',data,session){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(session?{Cookie:session.cookie,'X-CSRF-Token':session.csrf}:{})},...(data===undefined?{}:{body:JSON.stringify(data)})});return {status:r.status,data:await r.json(),cookie:r.headers.get('set-cookie')?.split(';')[0]};}
+    await call('/api/setup','POST',passwords);const login=await call('/api/login','POST',{username:ACCOUNTS.exatas,password:passwords.exatas});const session={cookie:login.cookie,csrf:login.data.csrf};
+    const person=instructor('cancel-person','exatas');let state=(await call('/api/contracts','GET',undefined,session)).data;
+    let result=await call('/api/contracts','PUT',{revision:state.revision,data:{...C.empty(),instructors:[person],contracts:[contract('cancel-contract',person,'ADM')]}},session);assert.equal(result.status,200);state=result.data;
+    const baseRequest={id:'cancel-contract',cancelled:true,reason:'',revision:state.revision};
+    assert.equal((await call('/api/contracts/cancellation','POST',baseRequest,session)).status,400);
+    assert.equal((await call('/api/contracts/cancellation','POST',{...baseRequest,reason:'Professor indisponível'}, {...session,cookie:''})).status,401);
+    result=await call('/api/contracts/cancellation','POST',{...baseRequest,reason:'Professor indisponível'},session);assert.equal(result.status,200);
+    let item=result.data.data.contracts[0];assert.equal(item.cancelled,true);assert.equal(item.cancellationReason,'Professor indisponível');assert.ok(item.cancelledAt);assert.equal(item.cancelledBy,ACCOUNTS.exatas);
+    result=await call('/api/contracts/cancellation','POST',{id:item.id,cancelled:false,reason:item.cancellationReason,revision:result.data.revision},session);assert.equal(result.status,200);item=result.data.data.contracts[0];assert.equal(item.cancelled,false);assert.equal(item.cancellationReason,'Professor indisponível');
 });
 
 test('substituição divide horas, preserva o original e protege acesso e orçamento',async t=>{

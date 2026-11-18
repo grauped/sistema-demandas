@@ -156,7 +156,7 @@
             <article class="record-card"><div>${role === 'gestora' && !item.cancelled && item.approvalStatus !== 'approved' ? `<label class="contract-select"><input type="checkbox" data-select-contract="${escape(item.id)}" aria-label="Selecionar ${escape(item.number)}" ${selectedContracts.has(item.id) ? 'checked' : ''} ${saving ? 'disabled' : ''}> Selecionar</label>` : ''}<h4>${escape(item.discipline)} · ${escape(C.groupLabel(item))}</h4><p>${escape(item.instructorSnapshot.name)}</p>
             <p>${escape(item.number)} · ${dateBR(item.startDate)} a ${dateBR(item.endDate)} · ${item.hoursUnits / 100} h</p>
             ${item.substitution ? `<p>Substituição do contrato ${escape(item.substitution.original.number)} · ${escape(item.substitution.original.instructorSnapshot.name)}</p>` : item.replacementId ? '<p>Carga horária ajustada às horas cumpridas · possui adendo de substituição</p>' : ''}
-            <p>Chave Pix: ${escape(item.instructorSnapshot.pix || 'Não informada')}</p><p>Orçamento: ${dateBR(C.budgetDate(item,data.contracts))}</p><span class="record-status ${item.cancelled ? 'inactive' : item.approvalStatus === 'approved' ? '' : 'pending'}">${item.cancelled ? 'Cancelado · fora do orçamento' : item.approvalStatus === 'approved' ? `Aprovado pela gestora${item.approvedAt ? ' em ' + dateBR(item.approvedAt.slice(0,10)) : ''}` : 'Pendente de aprovação'}</span></div>
+            <p>Chave Pix: ${escape(item.instructorSnapshot.pix || 'Não informada')}</p><p>Orçamento: ${dateBR(C.budgetDate(item,data.contracts))}</p>${item.cancelled && item.cancellationReason ? `<p>Motivo do cancelamento: ${escape(item.cancellationReason)}</p>` : ''}<span class="record-status ${item.cancelled ? 'inactive' : item.approvalStatus === 'approved' ? '' : 'pending'}">${item.cancelled ? 'Cancelado · fora do orçamento' : item.approvalStatus === 'approved' ? `Aprovado pela gestora${item.approvedAt ? ' em ' + dateBR(item.approvedAt.slice(0,10)) : ''}` : 'Pendente de aprovação'}</span></div>
             <div class="record-actions">${role === 'gestora' && !item.cancelled ? `<button class="btn-primary" data-contract="approve" data-id="${escape(item.id)}">${item.approvalStatus === 'approved' ? 'Retirar aprovação' : 'Aprovar contrato'}</button>` : ''}<strong class="record-total">${money(item.amountCents)}</strong>
             ${role === 'gestora' && !item.cancelled ? `<button class="btn-secondary" data-contract="pix" data-id="${escape(item.id)}">Editar Pix</button>` : ''}<button class="btn-secondary" data-contract="pdf" data-id="${escape(item.id)}">Ver PDF</button>
             ${!item.cancelled && !item.substitution && !item.replacementId ? `<button class="text-button" data-contract="edit" data-id="${escape(item.id)}">Editar</button>` : ''}
@@ -171,6 +171,19 @@
         const parent=data.contracts.find(c=>c.id===$('substitutionOriginalId').value);
         return parent?.replacementId ? data.contracts.find(c=>c.id===parent.replacementId).substitution.original : parent;
     }
+    function openCancellation(item) {
+        $('cancellationForm').reset();$('cancellationError').textContent='';
+        $('cancellationContractId').value=item.id;
+        $('cancellationContractInfo').textContent=`${item.number} · ${item.discipline} · ${C.groupLabel(item)} · ${item.instructorSnapshot.name}`;
+        $('cancellationReason').value=item.cancellationReason || '';
+        $('cancellationDialog').showModal();$('cancellationReason').focus();
+    }
+    $('cancellationForm').addEventListener('submit',async event=>{
+        event.preventDefault();if(saving)return;
+        try { saving=true;const result=await Auth.api('/api/contracts/cancellation',{method:'POST',data:{id:$('cancellationContractId').value,cancelled:true,reason:$('cancellationReason').value,revision}});data=result.data;revision=result.revision;$('cancellationDialog').close();render();notify('Contrato cancelado. O motivo foi salvo e o registro saiu do orçamento.'); }
+        catch(error){$('cancellationError').textContent=error.message;}
+        finally { saving=false; }
+    });
     function openSubstitution(item) {
         if(saving)return;
         const parent=item.substitution ? data.contracts.find(c=>c.id===item.substitution.original.id) : item;
@@ -493,7 +506,10 @@
         }
         else if(button.dataset.contract==='edit') openContract({id:item.id});
         else if(button.dataset.contract==='copy') openContract({id:item.id,copy:true});
-        else { const next=clone(data); next.contracts.find(record=>record.id===item.id).cancelled=!item.cancelled; if(await commit(next))notify(item.cancelled?'Registro reativado. Aguarda aprovação para entrar no orçamento.':'Registro cancelado e retirado do orçamento. Você pode reativá-lo em Mostrar cancelados.'); }
+        else if(button.dataset.contract==='toggle') {
+            if(item.cancelled) { const result=await Auth.api('/api/contracts/cancellation',{method:'POST',data:{id:item.id,cancelled:false,reason:item.cancellationReason || '',revision}});data=result.data;revision=result.revision;render();notify('Registro reativado. Aguarda aprovação para entrar no orçamento.'); }
+            else openCancellation(item);
+        }
     });
     $('contractInstructor').addEventListener('change',()=>{updateCourses();updateLessonHours();previewInstructor();});
     $('contractCourse').addEventListener('change',()=>updateLessonHours());

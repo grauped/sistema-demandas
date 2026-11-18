@@ -63,6 +63,8 @@
             !Number.isSafeInteger(contract.amountCents) || contract.amountCents !== total(contract.hoursUnits, contract.hourRateCents) ||
             contract.amountCents < 0 || typeof contract.cancelled !== 'boolean' ||
             typeof contract.notes !== 'string') throw new Error('Registro de contrato inválido.');
+        if (contract.cancellationReason != null && (typeof contract.cancellationReason !== 'string' || contract.cancellationReason.length > 500)) throw new Error('Motivo do cancelamento inválido.');
+        if (contract.cancelled && contract.cancellationReason != null && !contract.cancellationReason.trim()) throw new Error('Informe o motivo do cancelamento.');
         if (contract.is2D !== undefined && typeof contract.is2D !== 'boolean') throw new Error('Opção de turma 2D inválida.');
         if (contract.lessonCount != null && (!Number.isSafeInteger(contract.lessonCount) || contract.lessonCount <= 0)) throw new Error('Quantidade de aulas inválida.');
         if (contract.dailyHours != null && ![3, 4].includes(contract.dailyHours)) throw new Error('Carga diária inválida.');
