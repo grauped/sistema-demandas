@@ -143,14 +143,13 @@ test('formulário recalcula dias e curso e preserva carga antiga ao abrir', () =
 });
 
 
-test('PDF prático exibe observações no checklist e rejeita texto que não cabe',async()=>{
+test('PDF exibe observações no checklist em qualquer modalidade e rejeita texto que não cabe',async()=>{
     const notes='Local: laboratório de enfermagem.\nGrupo 1: segunda e quarta, das 8h às 12h.\nLevar jaleco e materiais para a atividade prática.';
-    for(const type of ['practice','both']){
+    for(const type of ['theory','practice','both']){
         const bytes=await PDF.generate({...contract,type,notes});
         assert.equal((await PDFDocument.load(bytes)).getPageCount(),1);
         fs.writeFileSync('tmp/contrato-observacoes-'+type+'.pdf',bytes);
     }
     await PDF.generate({...contract,type:'practice',notes:'   '});
-    await PDF.generate({...contract,type:'theory',notes:'Texto muito longo. '.repeat(500)});
-    await assert.rejects(PDF.generate({...contract,type:'practice',notes:'Texto muito longo. '.repeat(500)}),/observações são longas/);
+    await assert.rejects(PDF.generate({...contract,type:'theory',notes:'Texto muito longo. '.repeat(500)}),/observações são longas/);
 });

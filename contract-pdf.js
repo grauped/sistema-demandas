@@ -23,7 +23,7 @@
             stubHours: decimal(record.hoursUnits), stubStart: dateBR(record.startDate),
             stubEnd: dateBR(record.endDate), stubRequest: dateBR(record.requestDate),
         };
-        const useNotes = ['practice', 'both'].includes(record.type) && Boolean(record.notes?.trim());
+        const useNotes = Boolean(record.notes?.trim());
         if (!useNotes) for (const [key, checked] of Object.entries(instructor.documents)) values['doc_' + key] = checked ? 'X' : '';
         if (useNotes) {
             const width = 539;
