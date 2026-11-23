@@ -8,7 +8,7 @@
     const roles = {
         gestora: { label: 'Gestora', courses: [...C.courses] },
         exatas: { label: 'Coordenação de Exatas', courses: ['ADM', 'ELT', 'STB', 'DSI', 'ELP', 'BCV'] },
-        saude: { label: 'Coordenação de Saúde', courses: ['RAD', 'ENF', 'EIC', 'FLB'] },
+        saude: { label: 'Coordenação de Saúde', courses: ['RAD', 'ENF', 'EIC', 'FLB', 'FARM'] },
     };
     const departments = ['exatas', 'saude'];
     const clone = data => JSON.parse(JSON.stringify(data));

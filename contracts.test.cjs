@@ -29,7 +29,7 @@ test('ciclos incluem virada de ano e distinguem dias 6 e 7', () => {
     assert.equal(C.validDate('2028-02-29'),true);
 });
 test('cursos novos ficam disponíveis no núcleo do sistema', () => {
-    for (const course of ['ELP', 'BCV', 'EIC', 'FLB']) assert.ok(C.courses.includes(course));
+    for (const course of ['ELP', 'BCV', 'EIC', 'FLB', 'FARM']) assert.ok(C.courses.includes(course));
 });
 test('contrato entre meses entra integralmente no ciclo do término, nunca da solicitação',()=>{
     C.validateContract(contract);
@@ -112,7 +112,7 @@ test('turma 2D usa sufixo após turno e alteração exige nova aprovação', () 
 });
 
 test('dias de aula usam a carga diária escolhida de 3 ou 4 horas', () => {
-    for(const course of ['ADM','ELT','STB','DSI','ENF','RAD','EIC','ELP','BCV','FLB']) {
+    for(const course of ['ADM','ELT','STB','DSI','ENF','RAD','EIC','ELP','BCV','FLB','FARM']) {
         assert.equal(C.lessonHours(course,10,3),3000);
         assert.equal(C.lessonHours(course,10,4),4000);
     }

@@ -21,7 +21,7 @@ test('migração separa instrutor compartilhado e mantém não classificados exc
 });
 test('permissões incluem os novos cursos nas coordenações corretas',()=>{
     for (const course of ['ELP','BCV']) assert.equal(P.courseDepartment(course),'exatas');
-    for (const course of ['EIC','FLB']) assert.equal(P.courseDepartment(course),'saude');
+    for (const course of ['EIC','FLB','FARM']) assert.equal(P.courseDepartment(course),'saude');
 });
 test('servidor autentica apenas os três e-mails e isola consultas, gravações, demandas e backups',async t=>{
     const parent=path.join(__dirname,'tmp');fs.mkdirSync(parent,{recursive:true});

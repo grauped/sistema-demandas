@@ -4,7 +4,7 @@
     else root.ContractsCore = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     'use strict';
-    const courses = ['ADM', 'STB', 'ELT', 'DSI', 'ELP', 'BCV', 'ENF', 'RAD', 'EIC', 'FLB', 'GERAL'];
+    const courses = ['ADM', 'STB', 'ELT', 'DSI', 'ELP', 'BCV', 'ENF', 'RAD', 'EIC', 'FLB', 'FARM', 'GERAL'];
     const hoursPerLesson = Object.freeze([3, 4]);
     function lessonHours(course, days, dailyHours) {
         if (!courses.includes(course) || course === 'GERAL') throw new Error('Selecione um curso para calcular as horas.');

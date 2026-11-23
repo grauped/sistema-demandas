@@ -1,5 +1,5 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./assets/vendor/pdf-lib.min.js'),require('./assets/addendum-template.js'),require('./contracts-core.js'));else root.AddendumPDF=factory(root.PDFLib,root.AddendumTemplate,root.ContractsCore);})(globalThis,function(PDFLib,template,C){
- const names={ADM:'Técnico em Administração',ELT:'Técnico em Eletrotécnica',STB:'Técnico em Segurança no Trabalho',DSI:'Técnico em Desenvolvimento de Sistemas',ELP:'Eletricista predial',BCV:'Bombeiro Civil',ENF:'Técnico em Enfermagem',RAD:'Técnico em Radiologia',EIC:'Especialização Técnica em Instrumentação Cirúrgica',FLB:'Coleta de sangue',GERAL:'Geral'};
+ const names={ADM:'Técnico em Administração',ELT:'Técnico em Eletrotécnica',STB:'Técnico em Segurança no Trabalho',DSI:'Técnico em Desenvolvimento de Sistemas',ELP:'Eletricista predial',BCV:'Bombeiro Civil',ENF:'Técnico em Enfermagem',RAD:'Técnico em Radiologia',EIC:'Especialização Técnica em Instrumentação Cirúrgica',FLB:'Coleta de sangue',FARM:'FARM',GERAL:'Geral'};
  const br=d=>d.split('-').reverse().join('/'),hours=n=>(n/100).toLocaleString('pt-BR');
  async function generate(record){
   const a=record.substitution;if(!a)throw new Error('Este contrato não possui adendo.');
