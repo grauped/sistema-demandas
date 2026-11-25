@@ -376,7 +376,8 @@
     function renderReport() {
         try {
             const f = filters();
-            const result = C.report(viewContracts(),f);
+            const rawResult = C.report(viewContracts(),f);
+            const result = role === 'gestora' ? {...rawResult,rows:CostReport.sortByInstructor(rawResult.rows)} : rawResult;
             $('reportPeriod').textContent = `${dateBR(f.start)} a ${dateBR(f.end)} · ${f.course || 'Todos os cursos'}${f.group ? ' · turma '+f.group : ''}`;
             $('reportTotal').textContent = money(result.total);
             $('reportCount').textContent = `${result.rows.length} solicitação(ões) · orçamento previsto`;
@@ -402,12 +403,14 @@
     function exportReport() {
         const result = renderReport(); if (!result) return;
         const f = filters();
-        const rows = [[reportTitle()], ['Período',dateBR(f.start),dateBR(f.end)], ['Curso',f.course || 'Todos'],['Turma',f.group || 'Todas'], [], CostReport.headers, ...result.rows.map(item=>CostReport.values(item).map((value,index)=>index===5||index===6?dateBR(value):typeof value==='number'?String(value).replace('.',','):value ?? '')), [],['VALOR TOTAL','','','','','','','','',(result.total/100).toFixed(2).replace('.',',')]];
+        const managerLayout=role==='gestora',headers=managerLayout?CostReport.managerHeaders:CostReport.headers,values=managerLayout?CostReport.managerValues:CostReport.values,totalColumnIndex=managerLayout?8:9;
+        const totalRow=['VALOR TOTAL',...Array(totalColumnIndex-1).fill(''),(result.total/100).toFixed(2).replace('.',','),...Array(headers.length-totalColumnIndex-1).fill('')];
+        const rows = [[reportTitle()], ['Período',dateBR(f.start),dateBR(f.end)], ['Curso',f.course || 'Todos'],['Turma',f.group || 'Todas'], [], headers, ...result.rows.map(item=>values(item).map((value,index)=>index===5||index===6?dateBR(value):typeof value==='number'?String(value).replace('.',','):value ?? '')), [],totalRow];
         download(new Blob([C.csv(rows)],{type:'text/csv;charset=utf-8'}),`orcamento-${f.start}-${f.end}${f.course ? '-'+f.course : ''}.csv`);
     }
 
     function reportTitle(){const department=role==='gestora'?$('departmentFilter').value:role;return 'RELATÓRIO DE DESPESAS COM DISCIPLINAS'+(department==='exatas'?' EXATAS':department==='saude'?' SAÚDE':' GERAL');}
-    $('reportExcel').addEventListener('click',()=>{const result=renderReport();if(!result)return;const f=filters();download(new Blob([CostReport.xlsx(result, {title:reportTitle(),...f})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`relatorio-custos-${f.start}-${f.end}.xlsx`);});
+    $('reportExcel').addEventListener('click',()=>{const result=renderReport();if(!result)return;const f=filters();download(new Blob([CostReport.xlsx(result, {title:reportTitle(),...f,managerLayout:role==='gestora'})],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),`relatorio-custos-${f.start}-${f.end}.xlsx`);});
     async function showPDF(record, adendum = false) {
         if (busyPDF) return;
         busyPDF = true;

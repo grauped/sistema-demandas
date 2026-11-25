@@ -14,3 +14,14 @@ test('relatório Excel reproduz onze colunas com instrutor, tipo e Pix, datas nu
  fs.mkdirSync('tmp',{recursive:true});fs.writeFileSync('tmp/relatorio-teste.xlsx',bytes);
  const empty=new TextDecoder().decode(R.xlsx({rows:[],total:0},{title:'Sem dados',...C.cycle('2026-09')}));assert.match(empty,/<f>0<\/f><v>0<\/v>/);
 });
+
+test('relatório da gestora ordena colunas, calcula o total e não quebra texto',()=>{
+ const item={instructorSnapshot:{name:'Ana Instrutora',pix:'chave-pix'},type:'practice',id:'gestora-1',approvalStatus:'approved',course:'ADM',group:'13',shift:'M',discipline:'Disciplina de teste',startDate:'2026-09-10',endDate:'2026-10-05',referenceDate:'2026-10-05',hoursUnits:5200,hourRateCents:1470,amountCents:76440,cancelled:false};
+ assert.deepEqual(R.managerHeaders,['INSTRUTOR','DISCIPLINA','TIPO','VALOR DA HORA/AULA','CARGA HORÁRIA','DATA INICIAL','DATA FINAL','TURMA','VALOR TOTAL','CHAVE PIX']);
+ assert.deepEqual(R.managerValues(item),['Ana Instrutora','Disciplina de teste','Prática',14.7,52,'2026-09-10','2026-10-05','ADM13-M',764.4,'chave-pix']);
+ assert.deepEqual(R.sortByInstructor([{instructorSnapshot:{name:'Zélia'},discipline:'A'},{instructorSnapshot:{name:'Ana'},discipline:'B'},{instructorSnapshot:{name:'Ana'},discipline:'A'}]).map(item=>item.instructorSnapshot.name+item.discipline),['AnaA','AnaB','ZéliaA']);
+ const text=new TextDecoder().decode(R.xlsx({rows:[item],total:item.amountCents},{title:'RELATÓRIO GERAL',...C.cycle('2026-09'),managerLayout:true}));
+ assert.match(text,/<c r="A3"[^>]*>.*?>INSTRUTOR<\/t>/);assert.match(text,/<c r="I4" s="5"><f>ROUND\(E4\*D4,2\)<\/f><v>764.4<\/v>/);
+ assert.match(text,/<f>SUM\(I4:I4\)<\/f>/);assert.match(text,/autoFilter ref="A3:J4"/);assert.match(text,/\$A\$1:\$J\$5/);
+ assert.doesNotMatch(text,/wrapText="1"/);assert.doesNotMatch(text,/<row r="4" ht=/);
+});
